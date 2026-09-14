@@ -1,0 +1,2502 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ラッコの探検記</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@700;900&family=Outfit:wght@700;800;900&display=swap');
+    
+    html, body {
+      font-family: 'Zen Maru Gothic', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      overflow: hidden;
+      height: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Bold stylish numbers font */
+    .num-font {
+      font-family: 'Outfit', 'Zen Maru Gothic', sans-serif;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    /* Custom Independent Scrollbar */
+    .scroll-container::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    .scroll-container::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .scroll-container::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 3px;
+    }
+
+    /* Animations */
+    @keyframes floaty {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-8px); }
+    }
+    .animate-float {
+      animation: floaty 2.5s ease-in-out infinite;
+    }
+
+    @keyframes badgeFloat {
+      0%, 100% { transform: translateY(0px) scale(1); }
+      50% { transform: translateY(-3px) scale(1.03); }
+    }
+    .animate-badge {
+      animation: badgeFloat 1.8s ease-in-out infinite;
+    }
+
+    /* Floating Arrow Animations for Scroll Container */
+    @keyframes arrowBounceUp {
+      0%, 100% { transform: translate(-50%, 0); }
+      50% { transform: translate(-50%, -4px); }
+    }
+    @keyframes arrowBounceDown {
+      0%, 100% { transform: translate(-50%, 0); }
+      50% { transform: translate(-50%, 4px); }
+    }
+    .animate-arrow-up {
+      animation: arrowBounceUp 1.2s ease-in-out infinite;
+    }
+    .animate-arrow-down {
+      animation: arrowBounceDown 1.2s ease-in-out infinite;
+    }
+
+    @keyframes blinkFast {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    .animate-blink-fast {
+      animation: blinkFast 0.8s ease-in-out infinite;
+    }
+
+    /* Speech bubble tail */
+    .speech-bubble-left {
+      position: relative;
+    }
+    .speech-bubble-left::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      right: -5px;
+      transform: translateY(-50%);
+      border-width: 4px 0 4px 5px;
+      border-style: solid;
+      border-color: transparent transparent transparent #10b981;
+      display: block;
+      width: 0;
+    }
+
+    /* Disabled UI State when Modal is open (Including Bag Button) */
+    .modal-active-overlay button:not(#modal-container button) {
+      pointer-events: none !important;
+      filter: brightness(0.5) grayscale(0.3) !important;
+    }
+  </style>
+</head>
+<body class="bg-black text-slate-100 flex justify-center items-center h-full w-full">
+
+  <!-- Main App Container -->
+  <div id="app" class="w-full max-w-md h-full sm:h-[844px] bg-slate-950 sm:rounded-3xl shadow-2xl flex flex-col justify-between overflow-hidden relative border-0 sm:border-4 border-slate-800">
+
+    <!-- 1. FIXED HEADER (HUD) -->
+    <header class="bg-gradient-to-r from-cyan-950 via-blue-950 to-indigo-950 text-white p-3 shadow-xl z-50 sticky top-0 border-b border-cyan-800/40 flex-shrink-0">
+      <div class="flex justify-between items-center mb-1.5 relative">
+        <div class="flex items-center space-x-1 flex-nowrap">
+          <span class="text-2xl">🦦</span>
+          <span class="font-black text-sm sm:text-base tracking-tight mr-1">ラッコ</span>
+          <div class="flex items-center gap-1 bg-black/60 px-1.5 py-0.5 rounded-full border border-white/10 text-[10px] font-bold">
+            <span class="text-red-400">🗡️<span id="header-hitrate" class="num-font ml-0.5">30%</span></span>
+            <span class="text-slate-600">|</span>
+            <span class="text-cyan-300">🛡️<span id="header-def" class="num-font ml-0.5">0</span></span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-1">
+          <div id="header-sell-badge" class="hidden animate-badge speech-bubble-left bg-emerald-500 text-white font-black text-[10px] px-2 py-0.5 rounded-full shadow-lg border border-emerald-300 whitespace-nowrap">
+            売却可能
+          </div>
+
+          <button id="btn-bag" onclick="toggleBag()" class="bg-amber-400 hover:bg-amber-500 text-slate-950 font-black px-2.5 py-1 rounded-full shadow border-2 border-amber-200 flex items-center justify-center gap-0.5 active:scale-95 transition text-xs whitespace-nowrap min-w-[90px]">
+            <span id="btn-bag-icon">🎒</span><span id="btn-bag-text">かばん</span><span id="header-bag-count" class="num-font font-black text-slate-950 ml-0.5">(1/20)</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-2 bg-black/60 p-2 rounded-xl text-xs font-bold text-center border border-white/10">
+        <div class="flex flex-col items-center">
+          <span class="text-sky-300 text-[10px]">満腹度</span>
+          <span id="stat-satiety" class="num-font text-lime-500 text-sm sm:text-base leading-tight">100 / 100</span>
+        </div>
+        <div class="flex flex-col items-center">
+          <span class="text-sky-300 text-[10px]">🐚 貝がら</span>
+          <span id="stat-shells" class="num-font text-yellow-300 text-sm sm:text-base leading-tight">100</span>
+        </div>
+        <div class="flex flex-col items-center">
+          <span class="text-sky-300 text-[10px]">深さ / 最深</span>
+          <span class="num-font text-white text-sm sm:text-base leading-tight"><span id="stat-depth" class="num-font">0</span> <span class="text-[10px] text-sky-400 font-bold">/ <span id="stat-max-depth" class="num-font">0</span></span></span>
+        </div>
+      </div>
+    </header>
+
+    <!-- 2. DYNAMIC MAIN CONTENT AREA -->
+    <main id="main-content" class="flex-1 overflow-hidden p-3 sm:p-4 flex flex-col relative bg-slate-950">
+    </main>
+
+    <!-- 3. MODAL / POPUP CONTAINER -->
+    <div id="modal-container" class="hidden fixed inset-0 pointer-events-auto z-40 flex items-end sm:items-center justify-center p-3 pb-28 sm:pb-36 pt-16">
+    </div>
+
+  </div>
+
+  <script>
+    const apiKey = "";
+    
+    // 現在のダンジョンの「最後の階層」
+    const LAST_DEPTH = 30;
+
+    async function generateFlavorText(prompt) {
+      if (!apiKey) return null;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+      const payload = {
+        contents: [{ parts: [{ text: prompt }] }],
+        systemInstruction: { parts: [{ text: "あなたは可愛い海のゲームのキャラクターです。語尾や口調をキャラクターに合わせて、短く楽しいフレーバーテキスト（1〜2文）を作成してください。" }] }
+      };
+
+      let retries = 5;
+      let delay = 1000;
+      for (let i = 0; i < retries; i++) {
+        try {
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (res.ok) {
+            const data = await res.json();
+            return data.candidates?.[0]?.content?.parts?.[0]?.text;
+          }
+        } catch (e) {}
+        await new Promise(r => setTimeout(r, delay));
+        delay *= 2;
+      }
+      return null;
+    }
+
+    // --- GAME DATA MASTER ---
+    const ITEMS = {
+      // 食べ物
+      oyster: { id: 'oyster', name: 'ゆで牡蠣', icon: '🦪', type: 'food', timing: '【いつでも】', effect: '満腹度を <span class="num-font">30</span> 回復', price: 40, rank: 1, val: 30 },
+      mackerel: { id: 'mackerel', name: 'サバすし', icon: '🐟', type: 'food', timing: '【いつでも】', effect: '満腹度を <span class="num-font">60</span> 回復', price: 90, rank: 2, val: 60 },
+      eel: { id: 'eel', name: '特上うな重', icon: '🍱', type: 'food', timing: '【いつでも】', effect: '満腹度を <span class="num-font">90</span> 回復', price: 130, rank: 3, val: 90 },
+
+      // お宝
+      bottle: { id: 'bottle', name: '漂流ビン', icon: '🫙', type: 'treasure', timing: '【使用不可】', effect: '換金用', price: 100, rank: 1, minD: 1, maxD: 5 },
+      log: { id: 'log', name: '身代わり丸太', icon: '🪵', type: 'treasure', timing: '【敵の番】', effect: '敵の番をスキップ', price: 200, rank: 2, minD: 1, maxD: 20 },
+      buoy: { id: 'buoy', name: 'お助けうきわ', icon: '🛟', type: 'treasure', timing: '【戦闘】', effect: '戦闘から安全に退避', price: 300, rank: 3, minD: 1, maxD: 20 },
+      flashlight: { id: 'flashlight', name: '海中電灯', icon: '🔦', type: 'treasure', timing: '【カード選択】', effect: 'カード <span class="num-font">1</span> 枚の発生イベントを特定する', price: 300, rank: 3, minD: 1, maxD: 29 },
+      meat: { id: 'meat', name: 'ビタミン剤', icon: '💊', type: 'treasure', timing: '【ラッコの番】', effect: '撃退率を一度だけ <span class="num-font">2</span> 倍', price: 400, rank: 4, minD: 1, maxD: 20 },
+      ring: { id: 'ring', name: '指輪', icon: '💍', type: 'treasure', timing: '【使用不可】', effect: '換金用', price: 1000, rank: 5, minD: 6, maxD: 20 },
+      water_lure: { id: 'water_lure', name: '光る呼び水', icon: '💧', type: 'treasure', timing: '【カード選択】', effect: 'カード <span class="num-font">1</span> 枚を「トレジャー部屋」に変える', price: 500, rank: 5, minD: 6, maxD: 29 },
+      beach_flag: { id: 'beach_flag', name: 'ビーチフラッグ', icon: '🚩', type: 'treasure', timing: '【カード選択】', effect: 'カード <span class="num-font">1</span> 枚を「やすらぎのオアシス」に変える', price: 300, rank: 3, minD: 6, maxD: 29 },
+      silver_coin: { id: 'silver_coin', name: '銀貨', icon: '🪙', type: 'treasure', timing: '【カード選択】', effect: 'カード <span class="num-font">1</span> 枚を「アザラシマーケット」に変える', price: 500, rank: 5, minD: 11, maxD: 29 },
+      octopus_pot: { id: 'octopus_pot', name: 'タコつぼ', icon: '🏺', type: 'treasure', timing: '【カード選択】', effect: 'カード <span class="num-font">1</span> 枚を「タコのスミス」に変える', price: 500, rank: 5, minD: 11, maxD: 29 },
+      secret_map: { id: 'secret_map', name: '秘密の地図', icon: '🗺️', type: 'treasure', timing: '【カード選択】', effect: 'カード <span class="num-font">1</span> 枚を「秘密の抜け道」に変える', price: 600, rank: 6, minD: 16, maxD: 29 },
+      trophy: { id: 'trophy', name: '優勝カップ', icon: '🏆', type: 'treasure', timing: '【使用不可】', effect: '換金用', price: 5000, rank: 7, minD: 21, maxD: 29 },
+      cake: { id: 'cake', name: 'ごちそうケーキ', icon: '🎂', type: 'treasure', timing: '【自動】', effect: '満腹度 <span class="num-font">0</span> 以下時に <span class="num-font">100</span> 回復', price: 10000, rank: 8, minD: 26, maxD: 29 },
+
+      // 武器
+      favorite_stone: { id: 'favorite_stone', name: 'お気に入りの石', icon: '🪨', type: 'weapon', hitRate: 20, price: 0, rank: 0, timing: '【装備】' },
+      shark_tooth: { id: 'shark_tooth', name: 'サメの歯', icon: '🦷', type: 'weapon', hitRate: 25, price: 400, rank: 3, timing: '【装備】' },
+      mussel_sword: { id: 'mussel_sword', name: 'ムール貝の剣', icon: '🗡️', type: 'weapon', hitRate: 30, price: 2000, rank: 4, timing: '【装備】' },
+      urchin_mace: { id: 'urchin_mace', name: 'ウニのメイス', icon: '🦔', type: 'weapon', hitRate: 40, price: 3000, rank: 5, timing: '【装備】' },
+      water_gun: { id: 'water_gun', name: '水鉄砲', icon: '🔫', type: 'weapon', hitRate: 50, price: 4000, rank: 0, timing: '【装備】', desc: '市場限定品' },
+      poseidon_stone: { id: 'poseidon_stone', name: 'ポセイドンの石', icon: '💎', type: 'weapon', hitRate: 60, price: 10000, rank: 8, timing: '【装備】' },
+
+      // 防具
+      seaweed_clothes: { id: 'seaweed_clothes', name: 'コンブの服', icon: '🌿', type: 'armor', def: 16, price: 240, rank: 2, timing: '【装備】' },
+      scallop_apron: { id: 'scallop_apron', name: 'ホタテの前かけ', icon: '🛡️', type: 'armor', def: 20, price: 480, rank: 3, timing: '【装備】' },
+      turtle_shell: { id: 'turtle_shell', name: 'カメのこうら', icon: '🐢', type: 'armor', def: 24, price: 2400, rank: 4, timing: '【装備】' },
+      coral_brooch: { id: 'coral_brooch', name: 'サンゴのブローチ', icon: '🪸', type: 'armor', def: 32, price: 3600, rank: 0, timing: '【装備】', desc: '市場限定品' },
+      pearl_barrier: { id: 'pearl_barrier', name: '真珠のバリア', icon: '🔮', type: 'armor', def: 40, price: 4800, rank: 6, timing: '【装備】' },
+      ryugu_dress: { id: 'ryugu_dress', name: '竜宮城のドレス', icon: '👗', type: 'armor', def: 48, price: 12000, rank: 8, timing: '【装備】' }
+    };
+
+    const SHOP_MASTER_DOLPHIN = [
+      { id: 'oyster', maxStock: 2, prob: 1.0 },
+      { id: 'mackerel', maxStock: 1, prob: 1.0 },
+      { id: 'eel', maxStock: 1, prob: 1.0 },
+      { id: 'log', maxStock: 1, prob: 1.0 },
+      { id: 'buoy', maxStock: 1, prob: 1.0 },
+      { id: 'flashlight', maxStock: 1, prob: 1.0 },
+      { id: 'silver_coin', maxStock: 1, prob: 0.20 },
+      { id: 'shark_tooth', maxStock: 1, prob: 1.0 },
+      { id: 'mussel_sword', maxStock: 1, prob: 1.0 },
+      { id: 'poseidon_stone', maxStock: 1, prob: 1.0 },
+      { id: 'seaweed_clothes', maxStock: 1, prob: 1.0 },
+      { id: 'scallop_apron', maxStock: 1, prob: 1.0 },
+      { id: 'turtle_shell', maxStock: 1, prob: 1.0 },
+      { id: 'ryugu_dress', maxStock: 1, prob: 1.0 }
+    ];
+
+    const SHOP_MASTER_MARKET = [
+      { id: 'oyster', maxStock: 1, prob: 0.80 },
+      { id: 'mackerel', maxStock: 1, prob: 0.40 },
+      { id: 'eel', maxStock: 1, prob: 0.20 },
+      { id: 'log', maxStock: 2, prob: 0.40 },
+      { id: 'buoy', maxStock: 2, prob: 0.40 },
+      { id: 'flashlight', maxStock: 2, prob: 0.40 },
+      { id: 'octopus_pot', maxStock: 1, prob: 1.0 },
+      { id: 'water_lure', maxStock: 1, prob: 0.80 },
+      { id: 'secret_map', maxStock: 1, prob: 0.20 },
+      { id: 'cake', maxStock: 1, prob: 0.10 },
+      { id: 'shark_tooth', maxStock: 1, prob: 0.80 },
+      { id: 'mussel_sword', maxStock: 1, prob: 0.80 },
+      { id: 'urchin_mace', maxStock: 1, prob: 0.40 },
+      { id: 'water_gun', maxStock: 1, prob: 1.0 },
+      { id: 'seaweed_clothes', maxStock: 1, prob: 0.80 },
+      { id: 'scallop_apron', maxStock: 1, prob: 0.80 },
+      { id: 'turtle_shell', maxStock: 1, prob: 0.80 },
+      { id: 'coral_brooch', maxStock: 1, prob: 1.0 },
+      { id: 'pearl_barrier', maxStock: 1, prob: 0.40 }
+    ];
+
+    const ENEMIES = [
+      { name: 'ケチなエビ', icon: '🦐', atk: 30, minD: 1, maxD: 5, ranks: [1] },
+      { name: 'いじわるなカニ', icon: '🦀', atk: 34, minD: 4, maxD: 8, ranks: [1, 2] },
+      { name: 'チクチククラゲ', icon: '🪼', atk: 42, minD: 7, maxD: 11, ranks: [1, 2, 3] },
+      { name: '怒ったフグ', icon: '🐡', atk: 50, minD: 10, maxD: 15, ranks: [2, 3, 4] },
+      { name: 'ずるいウミヘビ', icon: '🐍', atk: 62, minD: 13, maxD: 18, ranks: [3, 4, 5] },
+      { name: '暴れサメ', icon: '🦈', atk: 74, minD: 16, maxD: 21, ranks: [4, 5, 6] },
+      { name: 'ダイオウイカ', icon: '🦑', atk: 90, minD: 19, maxD: 24, ranks: [5, 6, 7] },
+      { name: '幽霊船', icon: '👻', atk: 106, minD: 22, maxD: 27, ranks: [6, 7, 8] },
+      { name: 'ラッシー', icon: '🦕', atk: 126, minD: 25, maxD: 29, ranks: [7, 8] },
+      { name: 'まぼろし龍', icon: '🐉', atk: 146, minD: 28, maxD: 29, ranks: [8] }
+    ];
+
+    const HOLE_TYPES = {
+      normal: { name: '🪧 ふつうの道', color: 'border-slate-500 bg-slate-900 text-slate-100' },
+      skirmish: { name: '⚔️ 一触即発', color: 'border-orange-500 bg-slate-900 text-orange-200' },
+      danger_feed: { name: '🐟 危険なエサ場', color: 'border-teal-500 bg-slate-900 text-teal-200' },
+      strong_enemy: { name: '💀 強敵の縄張り', color: 'border-red-950 bg-slate-900 text-red-300' },
+      treasure_sign: { name: '👑 トレジャー部屋', color: 'border-yellow-400 bg-slate-900 text-yellow-200' },
+      chaos: { name: '🌀 カオスな渦潮', color: 'border-blue-500 bg-slate-900 text-blue-200' },
+      oasis: { name: '🌴 やすらぎの<br>オアシス', color: 'border-lime-600 bg-slate-900 text-lime-200', baseProb: { food: 100 } },
+      market: { name: '🏮 アザラシ<br>マーケット', color: 'border-pink-400 bg-slate-900 text-pink-200', baseProb: { market: 100 } },
+      smith: { name: '🔨 タコのスミス', color: 'border-sky-500 bg-slate-900 text-sky-200', baseProb: { smith: 100 } },
+      shortcut: { name: '✨ 秘密の抜け道', color: 'border-white bg-slate-900 text-slate-100', baseProb: { return: 100 } },
+      boss_hole: { name: '⚓️ 最深部', color: 'border-indigo-800 bg-slate-900 text-indigo-300' }
+    };
+
+    const EVENT_META = {
+      enemy: { name: '敵', color: 'text-red-400', hex: '#ef4444' },
+      strongEnemy: { name: '強敵', color: 'text-red-800', hex: '#7f1d1d' },
+      treasure: { name: 'お宝', color: 'text-yellow-300', hex: '#fde047' },
+      food: { name: '食べ物', color: 'text-lime-500', hex: '#15803d' },
+      trap: { name: '罠', color: 'text-purple-400', hex: '#a855f7' },
+      market: { name: '市場', color: 'text-pink-300', hex: '#f472b6' },
+      smith: { name: '鍛冶屋', color: 'text-sky-400', hex: '#0284c7' },
+      return: { name: '帰還', color: 'text-white', hex: '#ffffff' },
+      boss: { name: 'ぬし', color: 'text-indigo-400', hex: '#3730a3' }
+    };
+
+    let state = {
+      satiety: 100,
+      maxSatiety: 100,
+      shells: 100,
+      depth: 0,
+      maxDepth: 0,
+      bag: [],
+      equippedWeaponUid: null,
+      equippedArmorUid: null,
+      currentCards: [],
+      currentScreen: 'home',
+      isBagOpen: false,
+      dolphinShopTab: 'food',
+      marketShopTab: 'food',
+      marketDialog: 'やあラッコちゃん！ どこよりも高く買い取るよ〜！',
+      dolphinShopStock: {},
+      marketShopStock: {},
+      battle: null,
+      isMarket: false,
+      activeBagTab: 'food',
+      favoriteStoneUpgrades: { upgrades: 0, upgradedHit: 0 },
+      debuffs: {
+        forceSkirmishNext: false,
+        forceStrongNext: false
+      },
+      pendingTargetItem: null,
+      hiddenCommandStep: 0,
+      devModeUnlocked: false,
+      ancientCityInvested: 0
+    };
+
+    function initGame() {
+      const initWeapon = {
+        uid: generateUid(),
+        id: 'favorite_stone',
+        type: 'weapon',
+        hitRate: 20,
+        def: 0,
+        upgradedHit: 0,
+        upgradedDef: 0,
+        upgrades: 0
+      };
+      state.bag.push(initWeapon);
+      state.equippedWeaponUid = initWeapon.uid;
+
+      refreshDolphinShop();
+      updateHeaderStats();
+      renderHomeScreen();
+    }
+
+    function refreshDolphinShop() {
+      state.dolphinShopStock = {};
+      SHOP_MASTER_DOLPHIN.forEach(entry => {
+        if (Math.random() <= entry.prob) {
+          state.dolphinShopStock[entry.id] = entry.maxStock;
+        }
+      });
+      syncFavoriteStoneDolphinStock();
+    }
+
+    function syncFavoriteStoneDolphinStock() {
+      if (!state.bag.some(i => i.id === 'favorite_stone')) {
+        state.dolphinShopStock['favorite_stone'] = 1;
+      } else {
+        delete state.dolphinShopStock['favorite_stone'];
+      }
+    }
+
+    function refreshMarketShop() {
+      state.marketShopStock = {};
+      SHOP_MASTER_MARKET.forEach(entry => {
+        if (Math.random() <= entry.prob) {
+          state.marketShopStock[entry.id] = entry.maxStock;
+        }
+      });
+    }
+
+    function resetGame() {
+      state.satiety = 100;
+      state.maxSatiety = 100;
+      state.shells = 100;
+      state.depth = 0;
+      state.maxDepth = 0;
+      state.favoriteStoneUpgrades = { upgrades: 0, upgradedHit: 0 };
+      state.debuffs = { forceSkirmishNext: false, forceStrongNext: false };
+      state.battle = null;
+      state.isMarket = false;
+      state.isBagOpen = false;
+      state.bag = [];
+      state.pendingTargetItem = null;
+      state.hiddenCommandStep = 0;
+      state.devModeUnlocked = false;
+      state.ancientCityInvested = 0;
+
+      const initWeapon = {
+        uid: generateUid(),
+        id: 'favorite_stone',
+        type: 'weapon',
+        hitRate: 20,
+        def: 0,
+        upgradedHit: 0,
+        upgradedDef: 0,
+        upgrades: 0
+      };
+      state.bag.push(initWeapon);
+      state.equippedWeaponUid = initWeapon.uid;
+      state.equippedArmorUid = null;
+
+      refreshDolphinShop();
+      updateHeaderStats();
+      renderHomeScreen();
+    }
+
+    function addDevShells() {
+      state.shells += 100000;
+      updateHeaderStats();
+    }
+
+    function generateUid() {
+      return 'item_' + Math.random().toString(36).substr(2, 9);
+    }
+
+    function getPlayerHitRate() {
+      let base = 10;
+      if (state.equippedWeaponUid) {
+        const weapon = state.bag.find(i => i.uid === state.equippedWeaponUid);
+        if (weapon) {
+          const master = ITEMS[weapon.id];
+          base += master.hitRate + weapon.upgradedHit;
+        }
+      }
+      if (state.battle) {
+        if (state.battle.hitRatePenalty) base -= state.battle.hitRatePenalty;
+        if (state.battle.hitRateHalved) base = Math.ceil(base / 2);
+        if (state.battle.buffHitMultiplier) base *= state.battle.buffHitMultiplier;
+        if (state.battle.courageActive) base *= 2;
+      }
+      return Math.max(0, base);
+    }
+
+    function getPlayerDef() {
+      let base = 0;
+      if (state.equippedArmorUid) {
+        const armor = state.bag.find(i => i.uid === state.equippedArmorUid);
+        if (armor) {
+          const master = ITEMS[armor.id];
+          base += master.def + armor.upgradedDef;
+        }
+      }
+      return base;
+    }
+
+    function updateHeaderStats() {
+      document.getElementById('stat-satiety').innerText = `${state.satiety} / ${state.maxSatiety}`;
+      document.getElementById('stat-shells').innerText = state.shells;
+      document.getElementById('stat-depth').innerText = state.depth;
+      document.getElementById('stat-max-depth').innerText = state.maxDepth;
+      document.getElementById('header-bag-count').innerText = `(${state.bag.length}/20)`;
+
+      document.getElementById('header-hitrate').innerText = `${getPlayerHitRate()}%`;
+      document.getElementById('header-def').innerText = `${getPlayerDef()}`;
+
+      const iconEl = document.getElementById('btn-bag-icon');
+      const textEl = document.getElementById('btn-bag-text');
+      if (iconEl && textEl) {
+        if (state.isBagOpen) {
+          iconEl.innerText = '❌';
+          textEl.innerText = '閉じる';
+        } else {
+          iconEl.innerText = '🎒';
+          textEl.innerText = 'かばん';
+        }
+      }
+
+      const sellBadge = document.getElementById('header-sell-badge');
+      if (sellBadge) {
+        if (state.isMarket) sellBadge.classList.remove('hidden');
+        else sellBadge.classList.add('hidden');
+      }
+
+      const btnBag = document.getElementById('btn-bag');
+      if (btnBag) {
+        if (state.pendingTargetItem) {
+          btnBag.classList.add('pointer-events-none', 'brightness-50', 'grayscale');
+        } else {
+          btnBag.classList.remove('pointer-events-none', 'brightness-50', 'grayscale');
+        }
+      }
+    }
+
+    function consumeSatiety(amount, isBattleContext = false) {
+      state.satiety -= amount;
+      if (state.satiety <= 0) {
+        const cakeIdx = state.bag.findIndex(i => i.id === 'cake');
+        if (cakeIdx !== -1) {
+          state.bag.splice(cakeIdx, 1);
+          state.satiety = 100;
+          showModal('🎂 ごちそうケーキ発動！', '<p class="text-center font-bold text-amber-400">満腹度が尽きそうになったが、ごちそうケーキを食べて満腹度が<span class="num-font">100</span>回復した！</p>', [
+            { text: '助かった！', class: 'bg-emerald-500 text-white font-bold', cb: () => updateHeaderStats() }
+          ]);
+          return false;
+        }
+
+        state.satiety = 0;
+        updateHeaderStats();
+        if (!isBattleContext) handleDeathPenalty();
+        return true;
+      }
+      updateHeaderStats();
+      return false;
+    }
+
+    function handleDeathPenalty() {
+      clearDebuffs(true);
+      syncFavoriteStoneDolphinStock();
+      refreshDolphinShop();
+      const lostShells = Math.floor(state.shells / 2);
+      state.shells -= lostShells;
+
+      let lostItemName = 'なし';
+      if (state.bag.length > 0) {
+        const rndIdx = Math.floor(Math.random() * state.bag.length);
+        const lost = state.bag.splice(rndIdx, 1)[0];
+        lostItemName = ITEMS[lost.id].name;
+        if (state.equippedWeaponUid === lost.uid) state.equippedWeaponUid = null;
+        if (state.equippedArmorUid === lost.uid) state.equippedArmorUid = null;
+      }
+
+      syncFavoriteStoneDolphinStock();
+
+      let reliefGiven = false;
+      if (state.shells <= 50) {
+        state.shells += 100;
+        reliefGiven = true;
+      }
+
+      showModal('💭 お腹ぺこぺこ…', `
+        <div class="text-center space-y-2">
+          <p class="text-blue-400 font-black text-sm">満腹度が <span class="num-font">0</span> になった…</p>
+          <p class="text-xs text-slate-300">ラッコはおうちに帰っちゃった…</p>
+          <div class="text-xs text-center space-y-1 my-3">
+            <p class="text-slate-200 font-bold"><span class="num-font text-yellow-300 font-bold">${lostShells}</span> 🐚 なくした…</p>
+            <p class="text-slate-300">🎒 ${lostItemName} を落としてしまった…</p>
+          </div>
+          ${reliefGiven ? `
+            <p class="text-emerald-300 font-bold text-xs bg-emerald-950/80 p-2 rounded-xl border border-emerald-700">
+              🤝 見かねた仲間が <span class="num-font text-yellow-300">100</span> 🐚 分けてくれた！
+            </p>
+          ` : ''}
+        </div>
+      `, [
+        {
+          text: 'おうちへ戻る',
+          class: 'bg-blue-600 hover:bg-blue-500 text-white font-bold',
+          cb: () => {
+            state.depth = 0;
+            state.satiety = state.maxSatiety;
+            state.pendingTargetItem = null;
+            updateHeaderStats();
+            renderHomeScreen();
+          }
+        }
+      ]);
+    }
+
+    function clearDebuffs(quiet = true) {
+      state.debuffs.forceSkirmishNext = false;
+      state.debuffs.forceStrongNext = false;
+    }
+
+    function toggleBag() {
+      if (state.isBagOpen) {
+        closeBag();
+      } else {
+        openBag();
+      }
+    }
+
+    function attachScrollGuide(elId) {
+      setTimeout(() => {
+        const el = document.getElementById(elId);
+        const upArrow = document.getElementById(elId + '-arrow-up');
+        const downArrow = document.getElementById(elId + '-arrow-down');
+        if (!el) return;
+
+        const updateArrows = () => {
+          const hasScroll = el.scrollHeight > el.clientHeight;
+          if (!hasScroll) {
+            if (upArrow) upArrow.classList.add('hidden');
+            if (downArrow) downArrow.classList.add('hidden');
+            return;
+          }
+          if (upArrow) {
+            if (el.scrollTop > 5) upArrow.classList.remove('hidden');
+            else upArrow.classList.add('hidden');
+          }
+          if (downArrow) {
+            if (el.scrollTop < el.scrollHeight - el.clientHeight - 5) downArrow.classList.remove('hidden');
+            else downArrow.classList.add('hidden');
+          }
+        };
+
+        el.onscroll = updateArrows;
+        updateArrows();
+      }, 50);
+    }
+
+    // --- SCREENS ---
+
+    function goToDolphinShop() {
+      if (state.hiddenCommandStep % 2 === 0) {
+        state.hiddenCommandStep++;
+      } else {
+        state.hiddenCommandStep = 1;
+      }
+      renderDolphinShop(state.dolphinShopTab);
+    }
+
+    function returnFromDolphinShop() {
+      if (state.hiddenCommandStep % 2 === 1) {
+        state.hiddenCommandStep++;
+        if (state.hiddenCommandStep >= 10) {
+          state.devModeUnlocked = true;
+        }
+      } else {
+        state.hiddenCommandStep = 0;
+      }
+      renderHomeScreen();
+    }
+
+    function renderHomeScreen() {
+      state.currentScreen = 'home';
+      state.satiety = state.maxSatiety;
+      state.depth = 0;
+      state.isMarket = false;
+      state.isBagOpen = false;
+      state.pendingTargetItem = null;
+      clearDebuffs(true);
+      updateHeaderStats();
+
+      const main = document.getElementById('main-content');
+      const remainInvest = 5000 - (state.ancientCityInvested || 0);
+      const isAncientCityUnlocked = remainInvest <= 0;
+
+      const ancientCityBtnHtml = isAncientCityUnlocked ? `
+        <button class="w-full bg-[#dca568] hover:bg-[#d0995c] text-black font-black py-3 px-4 rounded-2xl shadow-lg border-2 border-[#b8854c] text-base active:scale-95 transition">
+          🏢 古代都市へ（深さ:<span class="num-font">99</span>）
+        </button>
+      ` : `
+        <button onclick="promptInvestAncientCity()" class="w-full bg-[#dca568] hover:bg-[#d0995c] text-black font-black py-1.5 px-4 rounded-2xl shadow-lg border-2 border-[#b8854c] flex flex-col items-center justify-center active:scale-95 transition min-h-[52px]">
+          <span class="text-sm leading-tight">🔒古代都市 開放まで <span class="num-font">${remainInvest}</span> 🐚</span>
+          <span class="text-[10px] text-black/70 font-bold leading-tight mt-0.5">ひと口 <span class="num-font">500</span> 🐚</span>
+        </button>
+      `;
+
+      main.innerHTML = `
+        <div class="flex flex-col h-full justify-between py-1 text-center relative">
+          <div class="text-right w-full pr-1">
+            <span class="text-[10px] text-slate-400 font-bold">フルスクリーン推奨</span>
+          </div>
+
+          <div class="space-y-1 my-auto mt-2">
+            <div class="text-5xl animate-bounce mb-1">🏡🦦</div>
+            <div class="text-xs font-bold text-slate-400">拠点</div>
+            <h1 class="text-2xl font-black text-amber-700 tracking-wider">ラッコのおうち</h1>
+            <p class="text-xs text-slate-300 font-bold mt-1">準備を整えて探検に出かけよう</p>
+          </div>
+
+          <div class="w-full max-w-xs mx-auto mb-8 space-y-2.5">
+            <div>
+              <button onclick="goToDolphinShop()" class="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black py-3 px-4 rounded-2xl shadow-lg border-2 border-cyan-300 text-base active:scale-95 transition">
+                🐬 イルカのお店へ
+              </button>
+              <p class="text-[11px] text-slate-400 mt-1">お気に入りの石をなくしたらイルカのお店を見てみて</p>
+            </div>
+
+            <button onclick="startExploration()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-black py-3 px-4 rounded-2xl shadow-lg border-2 border-blue-800/80 text-base active:scale-95 transition">
+              🌊 海底洞窟へ（深さ:<span class="num-font">${LAST_DEPTH}</span>）
+            </button>
+            
+            ${ancientCityBtnHtml}
+          </div>
+
+          <div class="absolute bottom-1 right-1 flex gap-1.5">
+            ${state.devModeUnlocked ? `
+            <button onclick="addDevShells()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-2.5 py-1 rounded-xl text-[10px] border border-slate-700 shadow">
+              開発用
+            </button>
+            ` : ''}
+            <button onclick="promptResetGame()" class="bg-rose-950/80 hover:bg-rose-900 text-rose-300 font-bold px-2.5 py-1 rounded-xl text-[10px] border border-rose-800 shadow">
+              リセット
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function promptInvestAncientCity() {
+      if ((state.ancientCityInvested || 0) >= 5000) return;
+
+      showModal('💰 投資しますか？', `
+        <div class="text-center space-y-2">
+          <p class="text-xs text-slate-200 font-bold">ひと口 <span class="num-font text-amber-300 font-bold">500</span> 🐚 です</p>
+        </div>
+      `, [
+        {
+          text: 'する',
+          class: 'bg-[#dca568] hover:bg-[#d0995c] text-black font-black',
+          cb: () => executeInvestAncientCity()
+        },
+        {
+          text: '今はしない',
+          class: 'bg-slate-700 text-slate-200 font-bold',
+          cb: () => {}
+        }
+      ]);
+    }
+
+    function executeInvestAncientCity() {
+      if (state.shells < 500) {
+        showModal('🐚 貝がらが足りない…', `
+          <div class="text-center space-y-1">
+            <p class="text-xs text-slate-200">貝がらを <span class="num-font text-amber-300 font-bold">500</span> 🐚 集めてこよう</p>
+          </div>
+        `, [{ text: 'らこっ', class: 'bg-slate-700 text-white font-bold' }]);
+        return;
+      }
+
+      state.shells -= 500;
+      state.ancientCityInvested = (state.ancientCityInvested || 0) + 500;
+      updateHeaderStats();
+
+      if (state.ancientCityInvested >= 5000) {
+        showModal('⛓️‍💥 ダンジョン開放！', `
+          <div class="text-center space-y-2">
+            <div class="text-5xl my-2 animate-bounce">🏢</div>
+            <p class="font-black text-amber-400 text-sm">古代都市が開放された</p>
+          </div>
+        `, [
+          {
+            text: 'らこっ',
+            class: 'bg-amber-400 text-slate-950 font-black',
+            cb: () => renderHomeScreen()
+          }
+        ]);
+      } else {
+        renderHomeScreen();
+      }
+    }
+
+    function promptResetGame() {
+      showModal('🗑️ 確認', `
+        <div class="text-center space-y-2">
+          <p class="text-xs font-bold text-red-400">ゲームを最初の状態に戻します<br>いいですか？</p>
+        </div>
+      `, [
+        {
+          text: 'はい',
+          class: 'bg-rose-950/80 hover:bg-rose-900 text-rose-300 font-bold border border-rose-800 shadow',
+          cb: () => resetGame()
+        },
+        {
+          text: 'いいえ',
+          class: 'bg-slate-700 text-slate-200 font-bold',
+          cb: () => {}
+        }
+      ]);
+    }
+
+    function renderDolphinShop(activeTab = 'food') {
+      if (state.currentScreen === 'dolphinShop' && state.dolphinShopTab !== activeTab) {
+        state.hiddenCommandStep = 0;
+      }
+      
+      state.currentScreen = 'dolphinShop';
+      state.dolphinShopTab = activeTab;
+      state.isMarket = true;
+      state.isBagOpen = false;
+      state.pendingTargetItem = null;
+
+      syncFavoriteStoneDolphinStock();
+      updateHeaderStats();
+      const main = document.getElementById('main-content');
+
+      let shopItems = [];
+      if (activeTab === 'food') shopItems = ['oyster', 'mackerel', 'eel'];
+      else if (activeTab === 'treasure') shopItems = ['log', 'buoy', 'flashlight', 'silver_coin'];
+      else if (activeTab === 'weapon') {
+        shopItems = ['shark_tooth', 'mussel_sword', 'poseidon_stone'];
+        if (state.dolphinShopStock['favorite_stone'] !== undefined) {
+          shopItems.unshift('favorite_stone');
+        }
+      } else if (activeTab === 'armor') {
+        shopItems = ['seaweed_clothes', 'scallop_apron', 'turtle_shell', 'ryugu_dress'];
+      }
+
+      shopItems = shopItems.filter(id => (state.dolphinShopStock[id] || 0) > 0);
+
+      main.innerHTML = `
+        <div class="flex flex-col h-full justify-between overflow-hidden relative">
+          <div class="flex-1 overflow-hidden flex flex-col relative">
+            <div class="flex items-center justify-between border-b border-cyan-800/60 pb-2 mb-2 flex-shrink-0">
+              <div class="flex items-center gap-2">
+                <span class="text-3xl">🐬</span>
+                <div>
+                  <h2 class="font-bold text-cyan-300 text-base">イルカのお店</h2>
+                  <p class="text-xs text-slate-400">「探検に役立つ道具を揃えているよ！」</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-4 gap-1 border-b border-slate-800 pb-2 mb-3 flex-shrink-0">
+              <button onclick="renderDolphinShop('food')" class="py-1.5 text-center text-xs font-bold rounded-xl ${activeTab === 'food' ? 'bg-cyan-500 text-slate-950 font-black' : 'text-slate-400 bg-slate-900'}">🦪 食べ物</button>
+              <button onclick="renderDolphinShop('treasure')" class="py-1.5 text-center text-xs font-bold rounded-xl ${activeTab === 'treasure' ? 'bg-cyan-500 text-slate-950 font-black' : 'text-slate-400 bg-slate-900'}">👑 お宝</button>
+              <button onclick="renderDolphinShop('weapon')" class="flex-1 py-1.5 text-center text-xs font-bold rounded-xl ${activeTab === 'weapon' ? 'bg-cyan-500 text-slate-950 font-black' : 'text-slate-400 bg-slate-900'}">🗡️ 武器</button>
+              <button onclick="renderDolphinShop('armor')" class="flex-1 py-1.5 text-center text-xs font-bold rounded-xl ${activeTab === 'armor' ? 'bg-cyan-500 text-slate-950 font-black' : 'text-slate-400 bg-slate-900'}">🛡️ 防具</button>
+            </div>
+
+            <div class="relative flex-1 overflow-hidden">
+              <div id="dolphin-shop-scroll-arrow-up" class="hidden absolute top-1 left-1/2 -translate-x-1/2 z-10 text-emerald-400 font-black text-sm animate-arrow-up pointer-events-none">▲</div>
+              <div id="dolphin-shop-scroll-arrow-down" class="hidden absolute bottom-1 left-1/2 -translate-x-1/2 z-10 text-emerald-400 font-black text-sm animate-arrow-down pointer-events-none">▼</div>
+
+              <div id="dolphin-shop-scroll" class="space-y-2 overflow-y-auto scroll-container h-full pr-1">
+                ${shopItems.length === 0 ? '<p class="text-xs text-slate-500 text-center py-12">売り切れ中です</p>' : ''}
+                ${shopItems.map(itemId => {
+                  const item = ITEMS[itemId];
+                  const stock = state.dolphinShopStock[itemId] || 0;
+                  const favUpgrades = itemId === 'favorite_stone' && state.favoriteStoneUpgrades.upgrades > 0 ? ` 🔥<span class="num-font">${state.favoriteStoneUpgrades.upgrades}</span>` : '';
+                  return `
+                    <div class="bg-slate-900 p-2.5 rounded-2xl border border-slate-800 shadow-sm flex items-center justify-between min-h-[76px]">
+                      <div class="flex items-center gap-2.5">
+                        <span class="text-3xl flex-shrink-0">${item.icon}</span>
+                        <div>
+                          <div class="font-bold text-slate-100 text-xs sm:text-sm flex items-center gap-1">
+                            ${item.name}${favUpgrades ? `<span class="text-orange-400 font-extrabold text-xs">${favUpgrades}</span>` : ''}
+                            ${item.desc ? `<span class="text-[10px] font-bold px-1.5 py-0.2 rounded-full border border-pink-400 bg-pink-950/80 text-white ml-1">${item.desc}</span>` : ''}
+                          </div>
+                          <div class="text-[10px] sm:text-xs text-slate-400">
+                            ${item.effect ? item.effect : ''}
+                            ${item.hitRate ? `撃退率 <span class="num-font">+${item.hitRate + (itemId === 'favorite_stone' ? state.favoriteStoneUpgrades.upgradedHit : 0)}%</span>` : ''}
+                            ${item.def ? `防御力 <span class="num-font">+${item.def}</span>` : ''}
+                          </div>
+                          <div class="flex items-center gap-3 mt-0.5">
+                            <span class="num-font text-xs font-bold text-amber-400">${item.price === 0 ? '0 🐚 (無料)' : `${item.price} 🐚`}</span>
+                            <span class="text-[11px] font-bold text-white">在庫　<span class="num-font">${stock}</span></span>
+                          </div>
+                        </div>
+                      </div>
+                      <button onclick="buyShopItem('${itemId}')" class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black px-3 py-1.5 rounded-xl text-xs shadow border border-cyan-300 active:scale-95 transition flex-shrink-0 ml-2">
+                        買う
+                      </button>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          </div>
+
+          <button onclick="returnFromDolphinShop()" class="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black py-3.5 rounded-2xl shadow-lg text-sm active:scale-95 transition mt-3 mb-5 flex-shrink-0">
+            お店を出る
+          </button>
+        </div>
+      `;
+
+      attachScrollGuide('dolphin-shop-scroll');
+    }
+
+    function buyShopItem(itemId) {
+      state.hiddenCommandStep = 0;
+      
+      if (state.bag.length >= 20) {
+        showModal('🎒 かばんがいっぱいだよ！', `
+          <div class="text-center space-y-1">
+            <p class="text-xs text-slate-200">アイテムを使ったり売ったりして<br>空きを作ろう</p>
+          </div>
+        `, [{ text: 'らこっ', class: 'bg-amber-400 text-slate-950 font-black' }]);
+        return;
+      }
+
+      const item = ITEMS[itemId];
+      const stock = state.dolphinShopStock[itemId] || 0;
+      if (stock <= 0) return;
+
+      if (state.shells < item.price) {
+        showModal('🐚 貝がらが足りない…', `
+          <div class="text-center space-y-1">
+            <p class="text-xs text-slate-200">アイテムを売ったりして<br>貝がらを増やそう</p>
+          </div>
+        `, [{ text: 'らこっ', class: 'bg-slate-700 text-white font-bold' }]);
+        return;
+      }
+
+      state.shells -= item.price;
+      state.dolphinShopStock[itemId]--;
+      if (state.dolphinShopStock[itemId] <= 0) {
+        delete state.dolphinShopStock[itemId];
+      }
+
+      updateHeaderStats();
+      obtainItemViaPurchase(itemId);
+    }
+
+    function startExploration() {
+      state.hiddenCommandStep = 0;
+      
+      if (state.depth === 0) {
+        state.depth = 1;
+        if (state.depth > state.maxDepth) state.maxDepth = state.depth;
+        refreshDolphinShop();
+      }
+      state.isMarket = false;
+      state.isBagOpen = false;
+      generateCards();
+      renderCardSelectionScreen();
+    }
+
+    function generateCards() {
+      if (state.depth >= LAST_DEPTH) {
+        state.currentCards = [{ hole: 'boss_hole', label: '', prob: { boss: 100 } }];
+        return;
+      }
+
+      if (state.debuffs.forceSkirmishNext) {
+        state.debuffs.forceSkirmishNext = false;
+        state.currentCards = [
+          { hole: 'skirmish', label: '', prob: generateSkirmishProb() },
+          { hole: 'skirmish', label: '', prob: generateSkirmishProb() },
+          { hole: 'skirmish', label: '', prob: generateSkirmishProb() }
+        ];
+        return;
+      }
+
+      if (state.debuffs.forceStrongNext) {
+        state.debuffs.forceStrongNext = false;
+        state.currentCards = [
+          { hole: 'strong_enemy', label: '', prob: generateStrongEnemyProb() },
+          { hole: 'strong_enemy', label: '', prob: generateStrongEnemyProb() },
+          { hole: 'strong_enemy', label: '', prob: generateStrongEnemyProb() }
+        ];
+        return;
+      }
+
+      const specialPool = ['skirmish', 'danger_feed', 'strong_enemy', 'treasure_sign', 'chaos', 'oasis', 'market', 'smith', 'shortcut'];
+      const specialWeights = [25, 25, 25, 5, 10, 3, 3, 3, 1];
+
+      const numSpecials = Math.random() < 0.5 ? 1 : 2;
+      const cardHoles = ['normal', 'normal', 'normal'];
+      const indices = [0, 1, 2].sort(() => Math.random() - 0.5).slice(0, numSpecials);
+
+      indices.forEach(idx => {
+        cardHoles[idx] = getRandomWeighted(specialPool, specialWeights);
+      });
+
+      state.currentCards = cardHoles.map(holeKey => {
+        let prob;
+        switch (holeKey) {
+          case 'normal': prob = generateNormalProb(); break;
+          case 'skirmish': prob = generateSkirmishProb(); break;
+          case 'danger_feed': prob = generateDangerFeedProb(); break;
+          case 'strong_enemy': prob = generateStrongEnemyProb(); break;
+          case 'treasure_sign': prob = generateTreasureSignProb(); break;
+          case 'chaos': prob = generateChaosProb(); break;
+          default: prob = HOLE_TYPES[holeKey].baseProb;
+        }
+
+        return { hole: holeKey, label: '', prob: prob };
+      });
+    }
+
+    function generateNormalProb() {
+      const enemy = Math.floor(Math.random() * 21) + 30;
+      const treasure = Math.floor(Math.random() * 6) + 17;
+      const food = Math.floor(Math.random() * 6) + 23;
+      const remain = Math.max(0, 100 - (enemy + treasure + food));
+      const market = Math.floor(remain / 2);
+      const smith = remain - market;
+      return { enemy, treasure, food, market, smith };
+    }
+
+    function generateSkirmishProb() {
+      const enemy = Math.floor(Math.random() * 21) + 60;
+      return { enemy, treasure: 100 - enemy };
+    }
+
+    function generateDangerFeedProb() {
+      const enemy = Math.floor(Math.random() * 21) + 40;
+      return { enemy, food: 100 - enemy };
+    }
+
+    function generateStrongEnemyProb() {
+      const strongEnemy = Math.floor(Math.random() * 41) + 50;
+      return { strongEnemy, treasure: 100 - strongEnemy };
+    }
+
+    function generateTreasureSignProb() {
+      const strongEnemy = Math.floor(Math.random() * 21);
+      const treasure = Math.floor(Math.random() * 11) + 70;
+      const trap = Math.max(0, 100 - (strongEnemy + treasure));
+      return { strongEnemy, treasure, trap };
+    }
+
+    function generateChaosProb() {
+      const raw = Array.from({length: 8}, () => Math.floor(Math.random() * 20) + 5);
+      const sum = raw.reduce((a, b) => a + b, 0);
+      const normalized = raw.map(v => Math.round((v / sum) * 100));
+      let diff = 100 - normalized.reduce((a, b) => a + b, 0);
+      normalized[0] += diff;
+
+      return {
+        strongEnemy: normalized[0],
+        enemy: normalized[1],
+        treasure: normalized[2],
+        food: normalized[3],
+        trap: normalized[4],
+        market: normalized[5],
+        smith: normalized[6],
+        return: normalized[7]
+      };
+    }
+
+    function getRandomWeighted(items, weights) {
+      const totalWeight = weights.reduce((a, b) => a + b, 0);
+      let random = Math.random() * totalWeight;
+      for (let i = 0; i < items.length; i++) {
+        if (random < weights[i]) return items[i];
+        random -= weights[i];
+      }
+      return items[0];
+    }
+
+    function renderCardSelectionScreen() {
+      state.currentScreen = 'exploration';
+      state.isBagOpen = false;
+      updateHeaderStats();
+      const main = document.getElementById('main-content');
+
+      const isLastDepth = state.depth >= LAST_DEPTH;
+      const isTargeting = state.pendingTargetItem !== null;
+
+      let headerText = 'カードを1枚選んで次の階層へ ※満腹度<span class="num-font">4</span>消費';
+      if (isTargeting) {
+        if (state.pendingTargetItem.id === 'flashlight') {
+          headerText = 'どのカードを照らす？';
+        } else {
+          headerText = 'どのカードを変える？';
+        }
+      }
+
+      main.innerHTML = `
+        <div class="flex flex-col h-full justify-between pb-3">
+          <div>
+            <div class="text-center mb-1">
+              <h2 class="text-xs sm:text-sm font-bold text-white leading-tight">${headerText}</h2>
+            </div>
+
+            <div class="${isLastDepth ? 'flex justify-center my-2' : 'grid grid-cols-3 gap-1.5 my-1'}">
+              ${state.currentCards.map((card, idx) => {
+                const info = HOLE_TYPES[card.hole];
+                const pieConic = generateDoughnutGradient(card.prob);
+
+                let colorClasses = info.color;
+                if (isTargeting) {
+                  colorClasses = colorClasses.replace(/border-[a-z0-9-]+/g, '') + ' border-[3px] border-emerald-500';
+                } else {
+                  colorClasses += ' border-2';
+                }
+
+                return `
+                  <div onclick="selectCard(${idx})" class="flex flex-col rounded-2xl p-1.5 shadow-lg cursor-pointer hover:scale-[1.02] active:scale-95 transition ${isLastDepth ? 'w-56 h-[360px]' : 'h-[360px]'} ${colorClasses}">
+                    <div class="text-center">
+                      <div class="font-bold text-xs tracking-tight leading-tight h-6 flex items-center justify-center">${info.name}</div>
+                    </div>
+
+                    <div class="flex flex-col items-center justify-center my-1.5 relative">
+                      <div class="w-20 h-20 rounded-full flex items-center justify-center shadow-md flex-shrink-0" style="background: ${pieConic};">
+                        <div class="w-10 h-10 rounded-full bg-slate-950 flex items-center justify-center text-sm shadow-inner">
+                          🕳️
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="space-y-1 bg-black/60 p-2 rounded-xl mt-0.5 flex-1 overflow-hidden">
+                      ${Object.entries(card.prob).map(([key, val]) => {
+                        const meta = EVENT_META[key] || { name: key, color: 'text-slate-300' };
+                        return `
+                          <div class="flex justify-between items-center text-xs font-bold leading-tight">
+                            <span class="${meta.color}">${meta.name}</span>
+                            <span class="num-font font-black ${meta.color} text-sm">${val}%</span>
+                          </div>
+                        `;
+                      }).join('')}
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function generateDoughnutGradient(probObj) {
+      let currentDeg = 0;
+      let gradientStops = [];
+
+      Object.entries(probObj).forEach(([key, val]) => {
+        const nextDeg = currentDeg + (val / 100) * 360;
+        const colorHex = EVENT_META[key]?.hex || '#94a3b8';
+        gradientStops.push(`${colorHex} ${currentDeg}deg ${nextDeg}deg`);
+        currentDeg = nextDeg;
+      });
+
+      return `conic-gradient(${gradientStops.join(', ')})`;
+    }
+
+    function selectCard(cardIdx) {
+      if (state.pendingTargetItem) {
+        const item = state.pendingTargetItem;
+        state.pendingTargetItem = null;
+        
+        if (item.id === 'flashlight') {
+          executeFlashlight(item, cardIdx);
+        } else {
+          executeCardChange(item, cardIdx);
+        }
+        return;
+      }
+
+      const died = consumeSatiety(4);
+      if (died) return;
+
+      const selectedCard = state.currentCards[cardIdx];
+      const eventType = rollEvent(selectedCard.prob);
+      executeEvent(eventType);
+    }
+
+    function rollEvent(probObj) {
+      const rand = Math.random() * 100;
+      let cum = 0;
+      for (const [evt, prob] of Object.entries(probObj)) {
+        cum += prob;
+        if (rand <= cum) return evt;
+      }
+      return 'enemy';
+    }
+
+    function executeEvent(evt) {
+      switch (evt) {
+        case 'boss': startBattle('boss'); break;
+        case 'strongEnemy': startBattle('strong'); break;
+        case 'enemy': startBattle('normal'); break;
+        case 'treasure': handleTreasureEvent(); break;
+        case 'food': handleFoodEvent(); break;
+        case 'trap': handleTrapEvent(); break;
+        case 'market': handleMarketEvent(); break;
+        case 'smith': handleSmithEvent(); break;
+        case 'return': handleReturnEvent(); break;
+      }
+    }
+
+    function handleTreasureEvent() {
+      const availableItems = Object.values(ITEMS).filter(i => 
+        i.type === 'treasure' && 
+        state.depth >= (i.minD || 1) && 
+        state.depth <= (i.maxD || 29)
+      );
+
+      const chosen = availableItems.length > 0 
+        ? availableItems[Math.floor(Math.random() * availableItems.length)]
+        : ITEMS.bottle;
+
+      showModal('👑 お宝を発見！', `
+        <div class="text-center my-2 space-y-1">
+          <div class="text-5xl my-2 animate-bounce">${chosen.icon}</div>
+          <div class="font-bold text-yellow-300 text-sm">${chosen.name} を見つけた！</div>
+          <p class="text-xs text-slate-400">${chosen.effect || ''}</p>
+        </div>
+      `, [
+        {
+          text: '次の階層へ',
+          class: 'bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-black',
+          cb: () => obtainItemDirect(chosen.id, () => advanceDepth())
+        }
+      ]);
+    }
+
+    function handleFoodEvent() {
+      let foodId = 'oyster';
+      const rand = Math.random() * 100;
+
+      if (state.depth <= 5) {
+        if (rand <= 85) foodId = 'oyster';
+        else if (rand <= 95) foodId = 'mackerel';
+        else foodId = 'eel';
+      } else if (state.depth <= 10) {
+        if (rand <= 70) foodId = 'oyster';
+        else if (rand <= 90) foodId = 'mackerel';
+        else foodId = 'eel';
+      } else if (state.depth <= 15) {
+        if (rand <= 40) foodId = 'oyster';
+        else if (rand <= 80) foodId = 'mackerel';
+        else foodId = 'eel';
+      } else if (state.depth <= 20) {
+        if (rand <= 60) foodId = 'mackerel';
+        else foodId = 'eel';
+      } else {
+        if (rand <= 20) foodId = 'mackerel';
+        else foodId = 'eel';
+      }
+
+      const food = ITEMS[foodId];
+
+      showModal('🌴 食べ物を発見！', `
+        <div class="text-center my-2 space-y-1">
+          <div class="text-5xl my-2 animate-bounce">${food.icon}</div>
+          <div class="font-bold text-lime-400 text-sm">${food.name} を見つけた！</div>
+          <p class="text-xs text-slate-400">${food.effect}</p>
+        </div>
+      `, [
+        {
+          text: '次の階層へ',
+          class: 'bg-lime-600 hover:bg-lime-500 text-white font-bold',
+          cb: () => obtainItemDirect(foodId, () => advanceDepth())
+        }
+      ]);
+    }
+
+    function handleTrapEvent() {
+      const toys = [
+        { icon: '⭐️', name: '星の形の木片が出現！' },
+        { icon: '🌙', name: '月の形の木片が出現！' },
+        { icon: '💛', name: 'ハートの形の木片が出現！' }
+      ];
+      const chosenToy = toys[Math.floor(Math.random() * toys.length)];
+      let satietyLoss = Math.floor(Math.random() * 21) + 10;
+      
+      // 満腹度が0以下になる場合、最低でも1残るようにダメージを調整
+      if (state.satiety - satietyLoss <= 0) {
+        satietyLoss = Math.max(0, state.satiety - 1);
+      }
+
+      const prev = state.satiety;
+      const died = consumeSatiety(satietyLoss);
+      if (died) return; // 調整したのでここで死ぬことはないはずだが念のため
+
+      const next = state.satiety;
+
+      showModal('🧩 おもちゃの罠！', `
+        <div class="text-center space-y-2 border-slate-800">
+          <div class="text-4xl my-1">${chosenToy.icon}</div>
+          <p class="text-xs font-bold text-purple-300">${chosenToy.name}</p>
+          <p class="text-xs text-slate-300">夢中で遊んでしまった…</p>
+          <div class="bg-slate-900 p-2 rounded-xl text-xs font-bold border border-slate-800">
+            満腹度: <span class="num-font text-emerald-400 font-bold">${prev}</span> ➔ <span class="num-font text-red-400 font-bold">${next}</span>
+          </div>
+        </div>
+      `, [
+        {
+          text: '次の階層へ',
+          class: 'bg-purple-600 hover:bg-purple-500 text-white font-bold',
+          cb: () => advanceDepth()
+        }
+      ]);
+    }
+
+    async function handleMarketEvent() {
+      state.currentScreen = 'market';
+      state.isMarket = true;
+      refreshMarketShop();
+      updateHeaderStats();
+      const prompt = "あなたはおお店の店主アザラシです。「やあラッコちゃん！ どこよりも高く買い取るよ〜！」のフレーバーメッセージを短く言ってください。";
+      const defaultMsg = "やあラッコちゃん！ どこよりも高く買い取るよ〜！";
+      state.marketDialog = await generateFlavorText(prompt) || defaultMsg;
+
+      renderMarketScreen(state.marketDialog, state.marketShopTab);
+    }
+
+    function renderMarketScreen(npcDialog = state.marketDialog, activeTab = state.marketShopTab) {
+      state.currentScreen = 'market';
+      state.marketDialog = npcDialog;
+      state.marketShopTab = activeTab;
+
+      const main = document.getElementById('main-content');
+      let shopItems = [];
+      if (activeTab === 'food') shopItems = ['oyster', 'mackerel', 'eel'];
+      else if (activeTab === 'treasure') shopItems = ['log', 'buoy', 'flashlight', 'octopus_pot', 'water_lure', 'secret_map', 'cake'];
+      else if (activeTab === 'weapon') shopItems = ['shark_tooth', 'mussel_sword', 'urchin_mace', 'water_gun'];
+      else if (activeTab === 'armor') shopItems = ['seaweed_clothes', 'scallop_apron', 'turtle_shell', 'coral_brooch', 'pearl_barrier'];
+
+      shopItems = shopItems.filter(id => (state.marketShopStock[id] || 0) > 0);
+
+      main.innerHTML = `
+        <div class="flex flex-col h-full justify-between overflow-hidden relative">
+          <div class="flex-1 overflow-hidden flex flex-col relative">
+            <div class="flex items-center gap-2 border-b border-pink-800/60 pb-2 mb-2 flex-shrink-0">
+              <span class="text-3xl">🦭</span>
+              <div>
+                <h2 class="font-bold text-pink-300 text-base">アザラシマーケット</h2>
+                <p class="text-xs text-pink-200 font-medium">「${npcDialog}」</p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-4 gap-1 border-b border-slate-800 pb-2 mb-3 flex-shrink-0">
+              <button onclick="renderMarketScreen(state.marketDialog, 'food')" class="py-1.5 text-center text-xs font-bold rounded-xl ${activeTab === 'food' ? 'bg-pink-500 text-white font-black' : 'text-slate-400 bg-slate-900'}">🦪 食べ物</button>
+              <button onclick="renderMarketScreen(state.marketDialog, 'treasure')" class="py-1.5 text-center text-xs font-bold rounded-xl ${activeTab === 'treasure' ? 'bg-pink-500 text-white font-black' : 'text-slate-400 bg-slate-900'}">👑 お宝</button>
+              <button onclick="renderMarketScreen(state.marketDialog, 'weapon')" class="flex-1 py-1.5 text-center text-xs font-bold rounded-xl ${activeTab === 'weapon' ? 'bg-pink-500 text-white font-black' : 'text-slate-400 bg-slate-900'}">🗡️ 武器</button>
+              <button onclick="renderMarketScreen(state.marketDialog, 'armor')" class="flex-1 py-1.5 text-center text-xs font-bold rounded-xl ${activeTab === 'armor' ? 'bg-pink-500 text-white font-black' : 'text-slate-400 bg-slate-900'}">🛡️ 防具</button>
+            </div>
+
+            <div class="relative flex-1 overflow-hidden">
+              <div id="market-scroll-arrow-up" class="hidden absolute top-1 left-1/2 -translate-x-1/2 z-10 text-emerald-400 font-black text-sm animate-arrow-up pointer-events-none">▲</div>
+              <div id="market-scroll-arrow-down" class="hidden absolute bottom-1 left-1/2 -translate-x-1/2 z-10 text-emerald-400 font-black text-sm animate-arrow-down pointer-events-none">▼</div>
+
+              <div id="market-scroll" class="space-y-1.5 overflow-y-auto scroll-container h-full pr-1">
+                ${shopItems.length === 0 ? '<p class="text-xs text-slate-500 text-center py-12">売り切れ中です</p>' : ''}
+                ${shopItems.map(itemId => {
+                  const item = ITEMS[itemId];
+                  const stock = state.marketShopStock[itemId] || 0;
+                  return `
+                    <div class="bg-slate-900 p-2 rounded-2xl border border-pink-900/40 shadow-sm flex items-center justify-between min-h-[76px]">
+                      <div class="flex items-center gap-2">
+                        <span class="text-2xl flex-shrink-0">${item.icon}</span>
+                        <div>
+                          <div class="font-bold text-slate-100 text-xs flex items-center gap-1">
+                            ${item.name}
+                            ${item.desc ? `<span class="text-[9px] font-bold px-1.5 py-0.2 rounded-full border border-pink-400 bg-pink-950/80 text-white ml-1">${item.desc}</span>` : ''}
+                          </div>
+                          <div class="text-[10px] text-slate-400">
+                            ${item.effect ? item.effect : ''}
+                            ${item.hitRate ? `撃退率 <span class="num-font">+${item.hitRate}%</span>` : ''}
+                            ${item.def ? `防御力 <span class="num-font">+${item.def}</span>` : ''}
+                          </div>
+                          <div class="flex items-center gap-3 mt-0.5">
+                            <span class="num-font text-xs font-bold text-amber-400">${item.price} 🐚</span>
+                            <span class="text-[11px] font-bold text-white">在庫　<span class="num-font">${stock}</span></span>
+                          </div>
+                        </div>
+                      </div>
+                      <button onclick="buyMarketItem('${itemId}')" class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black px-3 py-1.5 rounded-xl text-xs shadow border border-cyan-300 active:scale-95 transition flex-shrink-0 ml-2">
+                        買う
+                      </button>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          </div>
+
+          <button onclick="state.isMarket=false; updateHeaderStats(); advanceDepth();" class="w-full bg-pink-500 hover:bg-pink-400 text-white font-black py-3.5 rounded-2xl shadow-lg text-sm border border-pink-300 active:scale-95 transition mt-3 mb-5 flex-shrink-0">
+            市場を出て次の階層へ
+          </button>
+        </div>
+      `;
+
+      attachScrollGuide('market-scroll');
+    }
+
+    function buyMarketItem(itemId) {
+      if (state.bag.length >= 20) {
+        showModal('🎒 かばんがいっぱいだよ！', `
+          <div class="text-center space-y-1">
+            <p class="text-xs text-slate-200">アイテムを使ったり売ったりして<br>空きを作ろう</p>
+          </div>
+        `, [{ text: 'らこっ', class: 'bg-amber-400 text-slate-950 font-black' }]);
+        return;
+      }
+
+      const item = ITEMS[itemId];
+      const stock = state.marketShopStock[itemId] || 0;
+      if (stock <= 0) return;
+
+      if (state.shells < item.price) {
+        showModal('🐚 貝がらが足りない…', `
+          <div class="text-center space-y-1">
+            <p class="text-xs text-slate-200">アイテムを売ったりして<br>貝がらを増やそう</p>
+          </div>
+        `, [{ text: 'らこっ', class: 'bg-slate-700 text-white font-bold' }]);
+        return;
+      }
+
+      state.shells -= item.price;
+      state.marketShopStock[itemId]--;
+      if (state.marketShopStock[itemId] <= 0) {
+        delete state.marketShopStock[itemId];
+      }
+
+      updateHeaderStats();
+      obtainItemViaPurchase(itemId);
+    }
+
+    function handleSmithEvent() {
+      state.currentScreen = 'smith';
+      renderSmithScreen();
+    }
+
+    function renderSmithScreen() {
+      state.currentScreen = 'smith';
+      const main = document.getElementById('main-content');
+      const equipableList = state.bag.filter(i => i.type === 'weapon' || i.type === 'armor');
+
+      main.innerHTML = `
+        <div class="flex flex-col h-full justify-between overflow-hidden relative">
+          <div class="flex-1 overflow-hidden flex flex-col relative">
+            <div class="flex items-center gap-2 border-b border-sky-800/60 pb-2 mb-2 flex-shrink-0">
+              <span class="text-3xl">🐙</span>
+              <div>
+                <h2 class="font-bold text-sky-300 text-base">タコのスミス</h2>
+                <p id="smith-dialog" class="text-xs text-sky-200 font-medium">「フン…装備を鍛えてほしいのか？」</p>
+              </div>
+            </div>
+
+            <p class="text-xs text-slate-400 mb-2 font-bold flex-shrink-0">強化したい装備を選ぼう</p>
+
+            <div class="relative flex-1 overflow-hidden">
+              <div id="smith-scroll-arrow-up" class="hidden absolute top-1 left-1/2 -translate-x-1/2 z-10 text-emerald-400 font-black text-sm animate-arrow-up pointer-events-none">▲</div>
+              <div id="smith-scroll-arrow-down" class="hidden absolute bottom-1 left-1/2 -translate-x-1/2 z-10 text-emerald-400 font-black text-sm animate-arrow-down pointer-events-none">▼</div>
+              
+              <div id="smith-scroll" class="space-y-1.5 overflow-y-auto scroll-container h-full pr-1">
+                ${equipableList.length === 0 ? '<p class="text-xs text-slate-500 text-center py-6">強化できる装備を持っていません</p>' : ''}
+                ${equipableList.map(item => {
+                  const master = ITEMS[item.id];
+                  const cost = Math.floor(master.price * 0.1) || 20;
+                  const isEquipped = state.equippedWeaponUid === item.uid || state.equippedArmorUid === item.uid;
+                  const upgradeBadge = item.upgrades > 0 ? `<span class="text-orange-400 font-extrabold text-xs ml-1">🔥<span class="num-font">${item.upgrades}</span></span>` : '';
+
+                  return `
+                    <div onclick="selectSmithItem('${item.uid}')" id="smith-item-${item.uid}" class="smith-item-card bg-slate-900 p-2.5 rounded-2xl border-2 border-slate-800 shadow-sm flex items-center justify-between cursor-pointer hover:border-sky-500 transition min-h-[76px]">
+                      <div class="flex items-center gap-2">
+                        <span class="text-2xl flex-shrink-0">${master.icon}</span>
+                        <div>
+                          <div class="font-bold text-slate-100 text-xs flex items-center gap-1">
+                            ${master.name}${upgradeBadge}
+                            ${isEquipped ? '<span class="bg-blue-600 text-white text-[9px] px-1.5 py-0.2 rounded-full font-bold">装備中</span>' : ''}
+                          </div>
+                          <div class="text-[10px] text-slate-400">
+                            ${item.type === 'weapon' ? `撃退率: <span class="num-font">+${master.hitRate + item.upgradedHit}%</span>` : `防御力: <span class="num-font">+${master.def + item.upgradedDef}</span>`}
+                          </div>
+                        </div>
+                      </div>
+                      <div class="num-font text-xs font-bold text-amber-400 flex-shrink-0 ml-2">${cost} 🐚</div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-2 mt-2 mb-4 flex-shrink-0">
+            <button id="btn-smith-upgrade" disabled onclick="executeUpgrade()" class="w-full bg-slate-900 text-slate-600 font-bold py-3.5 rounded-2xl shadow text-sm border border-slate-800 cursor-not-allowed transition">
+              🔨 強化してもらう
+            </button>
+            <button onclick="advanceDepth()" class="w-full bg-sky-500 hover:bg-sky-400 text-white font-bold py-3.5 rounded-2xl text-sm transition shadow-lg border border-sky-300">
+              あいさつして次の階層へ
+            </button>
+          </div>
+        </div>
+      `;
+
+      attachScrollGuide('smith-scroll');
+    }
+
+    let selectedSmithUid = null;
+
+    function selectSmithItem(uid) {
+      selectedSmithUid = uid;
+      document.querySelectorAll('.smith-item-card').forEach(el => {
+        el.classList.remove('border-sky-400', 'bg-sky-950/40');
+        el.classList.add('border-slate-800', 'bg-slate-900');
+      });
+
+      const target = document.getElementById(`smith-item-${uid}`);
+      if (target) {
+        target.classList.remove('border-slate-800', 'bg-slate-900');
+        target.classList.add('border-sky-400', 'bg-sky-950/40');
+      }
+
+      const btn = document.getElementById('btn-smith-upgrade');
+      btn.disabled = false;
+      btn.className = "w-full bg-sky-500 hover:bg-sky-400 text-white font-bold py-3.5 rounded-2xl shadow-lg text-sm active:scale-95 transition border-2 border-sky-200";
+    }
+
+    async function executeUpgrade() {
+      if (!selectedSmithUid) return;
+      const item = state.bag.find(i => i.uid === selectedSmithUid);
+      if (!item) return;
+
+      const master = ITEMS[item.id];
+      const cost = Math.floor(master.price * 0.1) || 20;
+
+      if (state.shells < cost) {
+        showModal('🐚 貝がらが足りない…', `
+          <div class="text-center space-y-1">
+            <p class="text-xs text-slate-200">アイテムを売ったりして<br>貝がらを増やそう</p>
+          </div>
+        `, [{ text: 'らこっ', class: 'bg-slate-700 text-white font-bold' }]);
+        return;
+      }
+
+      state.shells -= cost;
+      item.upgrades = (item.upgrades || 0) + 1;
+      let upgradeLogText = '';
+
+      if (item.type === 'weapon') {
+        const prev = master.hitRate + item.upgradedHit;
+        item.upgradedHit += 2;
+        const next = master.hitRate + item.upgradedHit;
+        upgradeLogText = `撃退率: <span class="num-font">+${prev}%</span> ➔ <span class="num-font text-emerald-400 font-bold">+${next}%</span> (<span class="num-font">+2%</span>)`;
+      } else {
+        const prev = master.def + item.upgradedDef;
+        item.upgradedDef += 2;
+        const next = master.def + item.upgradedDef;
+        upgradeLogText = `防御力: <span class="num-font">+${prev}</span> ➔ <span class="num-font text-emerald-400 font-bold">+${next}</span> (<span class="num-font">+2</span>)`;
+      }
+
+      if (item.id === 'favorite_stone') {
+        state.favoriteStoneUpgrades.upgrades = item.upgrades;
+        state.favoriteStoneUpgrades.upgradedHit = item.upgradedHit;
+      }
+
+      updateHeaderStats();
+
+      const npcTalk = "バッチリ仕上がったぜ！";
+
+      showModal('🔨 強化完了！', `
+        <div class="text-center space-y-2">
+          <div class="text-4xl">✨🐙✨</div>
+          <p class="text-sm font-bold text-sky-300">${master.name} <span class="text-orange-400 font-extrabold">🔥<span class="num-font">${item.upgrades}</span></span> になった！</p>
+          <div class="bg-slate-900 p-2 rounded-xl text-xs font-bold border border-sky-800/80">
+            ${upgradeLogText}
+          </div>
+          <p class="text-xs text-slate-300">「${npcTalk}」</p>
+        </div>
+      `, [
+        {
+          text: '感謝して次の階層へ',
+          class: 'bg-sky-500 hover:bg-sky-400 text-white font-bold',
+          cb: () => advanceDepth()
+        }
+      ]);
+    }
+
+    function handleReturnEvent() {
+      showModal('✨ 無事に帰還！', `
+        <div class="text-center space-y-2 my-2">
+          <div class="text-5xl">🏡</div>
+          <p class="text-sm font-bold text-slate-200">ラッコはおうちに帰った！</p>
+        </div>
+      `, [
+        {
+          text: 'ただいま',
+          class: 'bg-white hover:bg-slate-100 text-slate-950 font-black',
+          cb: () => renderHomeScreen()
+        }
+      ]);
+    }
+
+    function advanceDepth() {
+      state.depth++;
+      if (state.depth > state.maxDepth) state.maxDepth = state.depth;
+      startExploration();
+    }
+
+    function handleDungeonClear() {
+      showModal('🎉 洞窟制覇！', `
+        <div class="text-center space-y-2">
+          <div class="text-6xl">🏆🦦</div>
+          <h3 class="font-bold text-lg text-amber-400">最後の階層（深さ<span class="num-font">${state.depth}</span>）を達成！</h3>
+          <p class="text-xs text-slate-300">無事に洞窟の最奥から帰還しました！おめでとう！</p>
+        </div>
+      `, [
+        {
+          text: 'おうちへ戻る',
+          class: 'bg-amber-400 text-slate-950 font-black',
+          cb: () => renderHomeScreen()
+        }
+      ]);
+    }
+
+    // --- BATTLE SYSTEM ---
+    function checkCourage() {
+      const b = state.battle;
+      if (!b || b.turn !== 'player' || b.courageActive) return;
+
+      const fails = b.consecutiveFails || 0;
+      let prob = 0.01;
+      if (fails === 1) prob = 0.03;
+      else if (fails === 2) prob = 0.10;
+      else if (fails === 3) prob = 0.32;
+      else if (fails >= 4) prob = 1.00;
+
+      if (Math.random() < prob) {
+        b.courageActive = true;
+        b.log.push('❤️‍🔥 ラッコは勇気を出した！ 撃退率が一度だけ <span class="num-font">2</span> 倍になる！');
+      }
+    }
+
+    function startBattle(type) {
+      state.currentScreen = 'battle';
+
+      let enemyObj;
+      let isStrong = false;
+      let isBoss = false;
+
+      if (type === 'boss') {
+        isBoss = true;
+        enemyObj = { name: 'さびたロボット', icon: '🤖', atk: 121 };
+      } else {
+        let validEnemies = ENEMIES.filter(e => state.depth >= e.minD && state.depth <= e.maxD);
+        if (validEnemies.length === 0) validEnemies = [ENEMIES[0]];
+
+        enemyObj = validEnemies[Math.floor(Math.random() * validEnemies.length)];
+
+        if (type === 'strong') {
+          isStrong = true;
+          const strongIdx = Math.min(ENEMIES.length - 1, ENEMIES.indexOf(enemyObj) + 2);
+          enemyObj = ENEMIES[strongIdx];
+        }
+      }
+
+      const isPlayerTurn = Math.random() < 0.5;
+
+      state.battle = {
+        isStrong: isStrong,
+        isBoss: isBoss,
+        enemy: enemyObj,
+        turn: isPlayerTurn ? 'player' : 'enemy',
+        buffHitMultiplier: 1,
+        courageActive: false,
+        consecutiveFails: 0,
+        hitRatePenalty: 0,
+        hitRateHalved: false,
+        disableTreasure: false,
+        disableFood: false,
+        usedSpecialAction: false,
+        isBlownAway: false,
+        log: []
+      };
+
+      if (isPlayerTurn) {
+        state.battle.log.push(`🎲 ラッコ の先攻！`);
+        state.battle.log.push('ラッコの番');
+        checkCourage();
+      } else {
+        state.battle.log.push(`🎲 ${enemyObj.name} の先攻！`);
+        state.battle.log.push('敵の番');
+      }
+
+      renderBattleScreen();
+    }
+
+    function renderBattleScreen() {
+      state.currentScreen = 'battle';
+      updateHeaderStats();
+      const main = document.getElementById('main-content');
+      const b = state.battle;
+
+      const hitRate = getPlayerHitRate();
+      const rawDmg = Math.max(1, b.enemy.atk - getPlayerDef());
+
+      main.innerHTML = `
+        <div class="flex flex-col h-full justify-between pb-2">
+          <div>
+            <div class="text-center mb-2">
+              <span class="${b.isBoss ? 'bg-indigo-900 text-white border border-indigo-700' : b.isStrong ? 'bg-red-950 text-white border border-red-600' : 'bg-red-800 text-white'} font-bold px-3 py-0.5 rounded-full text-xs shadow">
+                ${b.isBoss ? '⚓️ ぬしと遭遇！' : b.isStrong ? '💀 強敵と遭遇！' : '⚔️ 敵と遭遇！'}
+              </span>
+            </div>
+
+            ${b.isEnemyCleared ? '' : `
+            <div class="bg-gradient-to-b from-slate-900 to-slate-950 text-white p-4 rounded-2xl text-center shadow-lg border border-red-900/50 mb-3">
+              <div class="text-6xl my-1 ${b.isEnemyCleared ? 'opacity-0' : 'animate-float'}">${b.enemy.icon}</div>
+              <h3 class="font-black text-base sm:text-lg ${b.isStrong ? 'text-red-400' : 'text-slate-100'} ${b.isEnemyCleared ? 'opacity-0' : ''}">${b.enemy.name}</h3>
+              <p class="text-xs text-slate-400 ${b.isEnemyCleared ? 'opacity-0' : ''}">攻撃力: <span class="num-font text-white font-bold">${b.enemy.atk}</span></p>
+            </div>
+            `}
+
+            <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800 text-xs h-36 overflow-y-auto space-y-1 mb-3 scroll-container" id="battle-log">
+              ${b.log.map(l => {
+                if (l === 'ラッコの番' || l === '敵の番') {
+                  return `<div class="flex items-center my-1 text-slate-400 font-bold text-xs"><div class="flex-1 border-t border-slate-700"></div><span class="px-2 flex-shrink-0">${l}</span><div class="flex-1 border-t border-slate-700"></div></div>`;
+                }
+                return `<p class="text-slate-200 font-medium">${l}</p>`;
+              }).join('')}
+            </div>
+          </div>
+
+          <div class="space-y-2 mb-4">
+            ${b.turn === 'player' ? `
+              <button onclick="handlePlayerAttack()" class="w-full bg-red-600 hover:bg-red-500 text-white font-black py-4 rounded-2xl shadow-lg border-b-4 border-red-900 flex items-center justify-between px-6 text-base active:scale-95 transition">
+                <span>立ち向かう</span>
+                <span class="bg-black/40 text-yellow-300 px-3 py-1 rounded-full text-xs num-font">撃退率: ${hitRate}%</span>
+              </button>
+            ` : b.turn === 'enemy' ? `
+              <button onclick="handleEnemyAttack()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl shadow-lg border-b-4 border-blue-900 flex items-center justify-between px-6 text-base active:scale-95 transition">
+                <span>立ち向かう</span>
+                <span class="bg-black/40 text-cyan-200 px-3 py-1 rounded-full text-xs num-font">推定被ダメージ: ${rawDmg}</span>
+              </button>
+            ` : `
+              <button ${b.isEnemyCleared ? 'disabled' : 'onclick="handleConfirmPhase()"'} class="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 font-black py-4 rounded-2xl shadow-lg border-b-4 border-slate-900 flex items-center justify-end px-6 text-base ${b.isEnemyCleared ? '' : 'active:scale-95 transition'}">
+                <span class="${b.isEnemyCleared ? '' : 'animate-blink-fast'}">${b.isEnemyCleared ? '　' : '▼'}</span>
+              </button>
+            `}
+          </div>
+        </div>
+      `;
+
+      const logEl = document.getElementById('battle-log');
+      if (logEl) logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function handlePlayerAttack() {
+      const b = state.battle;
+      const hitRate = getPlayerHitRate();
+      const rand = Math.random() * 100;
+
+      const wasCourage = b.courageActive;
+
+      // 攻撃後は成否問わず勇気状態とビタミン剤倍率をリセット
+      b.courageActive = false;
+      b.buffHitMultiplier = 1;
+
+      if (rand <= hitRate) {
+        b.consecutiveFails = 0;
+        
+        const earnedShells = b.isBoss ? (50 + state.depth * 40) * 2 : (50 + state.depth * 40);
+        const dropChance = b.isBoss ? 0 : (b.isStrong ? 1.0 : 0.25);
+        let droppedItem = null;
+
+        if (Math.random() <= dropChance && !b.isBoss) {
+          const rank = b.enemy.ranks[Math.floor(Math.random() * b.enemy.ranks.length)];
+          const potentialDrops = Object.values(ITEMS).filter(i => i.rank === rank && i.id !== 'favorite_stone');
+          if (potentialDrops.length > 0) {
+            droppedItem = potentialDrops[Math.floor(Math.random() * potentialDrops.length)];
+          }
+        }
+
+        let clearDebuffLog = [];
+        if (b.disableTreasure) clearDebuffLog.push('⚡️ しびれが治った');
+        if (b.disableFood) clearDebuffLog.push('🫟 墨をふき取った');
+
+        b.winData = {
+          earnedShells,
+          droppedItem,
+          clearDebuffLog
+        };
+
+        b.log.push('🎯 ラッコ の攻撃！ 当たり！');
+        b.turn = 'player_confirm';
+        renderBattleScreen();
+      } else {
+        if (wasCourage) {
+          b.consecutiveFails = 0;
+        } else {
+          b.consecutiveFails = (b.consecutiveFails || 0) + 1;
+        }
+        b.log.push('💫 ラッコ の攻撃！ はずれ…！');
+        b.turn = 'player_confirm';
+        renderBattleScreen();
+      }
+    }
+
+    function handleEnemyAttack() {
+      const b = state.battle;
+      const enemyName = b.enemy.name;
+
+      let performedSpecial = false;
+
+      if (!b.usedSpecialAction) {
+        if (enemyName === 'さびたロボット' && Math.random() < 0.6) {
+          b.log.push('🌪️ さびたロボットは竜巻をおこした！ ラッコは <span class="num-font">1</span> つ前の階層へ戻されてしまった！');
+          b.isBlownAway = true;
+          performedSpecial = true;
+        } else if (enemyName === 'いじわるなカニ' && Math.random() < 0.5) {
+          b.log.push('⚔️ いじわるなカニは騒いだ！ 次の階層が一触即発になった！');
+          state.debuffs.forceSkirmishNext = true;
+          performedSpecial = true;
+        } else if (enemyName === 'チクチククラゲ' && Math.random() < 0.5) {
+          b.log.push('⚡️ チクチククラゲはしびれ針で刺した！ お宝を使えなくなった！');
+          b.disableTreasure = true;
+          performedSpecial = true;
+        } else if (enemyName === 'ずるいウミヘビ' && Math.random() < 0.5) {
+          b.log.push('💨 ずるいウミヘビはこそこそしている！ 撃退率 <span class="num-font">10%</span> 低下！');
+          b.hitRatePenalty += 10;
+          performedSpecial = true;
+        } else if (enemyName === 'ダイオウイカ' && Math.random() < 0.5) {
+          b.log.push('🫟 ダイオウイカは墨を吐いた！ 食べ物を使えなくなった！');
+          b.disableFood = true;
+          performedSpecial = true;
+        } else if (enemyName === '幽霊船' && Math.random() < 0.5) {
+          b.log.push('💀 幽霊船の呪い！ 次の階層がすべて強敵の縄張りになった！');
+          state.debuffs.forceStrongNext = true;
+          performedSpecial = true;
+        } else if (enemyName === 'まぼろし龍') {
+          b.log.push('💨 まぼろし龍は雲隠れした！ 撃退率半減！');
+          b.hitRateHalved = true;
+          performedSpecial = true;
+        }
+
+        if (performedSpecial) {
+          b.usedSpecialAction = true;
+          b.turn = 'enemy_confirm';
+          renderBattleScreen();
+          return;
+        }
+      }
+
+      const dmg = Math.max(1, b.enemy.atk - getPlayerDef());
+      const died = consumeSatiety(dmg, true);
+
+      b.log.push(`💥 ${b.enemy.name} の攻撃！ 満腹度が <span class="num-font">${dmg}</span> 減った！`);
+      if (died) {
+        b.isDead = true;
+      }
+      b.turn = 'enemy_confirm';
+      renderBattleScreen();
+    }
+
+    function handleConfirmPhase() {
+      const b = state.battle;
+      if (!b) return;
+
+      if (b.turn === 'player_confirm') {
+        if (b.winData) {
+          const { earnedShells, droppedItem, clearDebuffLog } = b.winData;
+          state.shells += earnedShells;
+
+          b.isEnemyCleared = true;
+          renderBattleScreen();
+
+          const title = b.isBoss ? '🎉 ぬしを撃退した！' : '🎉 敵を撃退した！';
+          const btnLabel = b.isBoss ? 'おうちへ戻る' : '次の階層へ';
+
+          showModal(title, `
+            <div class="text-center space-y-2 my-1">
+              <div class="text-5xl my-1">✨🦦✨</div>
+              <p class="font-black text-red-500 text-sm">${b.enemy.name} を追い払った！</p>
+              <p class="text-xs text-slate-200 font-bold"><span class="num-font text-yellow-300 font-bold">${earnedShells}</span> 🐚 拾った！</p>
+              ${droppedItem ? `<p class="text-xs text-slate-200">🎁 ${droppedItem.name} をもらった！</p>` : ''}
+              ${clearDebuffLog.length > 0 ? `<p class="text-xs text-cyan-300 font-bold border-t border-slate-800 pt-1 mt-1">${clearDebuffLog.join('<br>')}</p>` : ''}
+            </div>
+          `, [
+            {
+              text: btnLabel,
+              class: 'bg-red-600 hover:bg-red-500 text-white font-black',
+              cb: () => {
+                state.battle = null;
+                if (b.isBoss) {
+                  renderHomeScreen();
+                } else {
+                  if (droppedItem) {
+                    obtainItemDirect(droppedItem.id, () => advanceDepth());
+                  } else {
+                    advanceDepth();
+                  }
+                }
+              }
+            }
+          ]);
+        } else {
+          b.turn = 'enemy';
+          b.log.push('敵の番');
+          renderBattleScreen();
+        }
+      } else if (b.turn === 'enemy_confirm') {
+        if (b.isDead) {
+          state.battle = null;
+          handleDeathPenalty();
+        } else if (b.isBlownAway) {
+          state.battle = null;
+          state.depth--;
+          updateHeaderStats();
+          generateCards();
+          renderCardSelectionScreen();
+        } else {
+          b.turn = 'player';
+          b.log.push('ラッコの番');
+          checkCourage();
+          renderBattleScreen();
+        }
+      }
+    }
+
+    // --- PURCHASE OBTAIN LOGIC ---
+    function obtainItemViaPurchase(itemId) {
+      const master = ITEMS[itemId];
+      const newItem = {
+        uid: generateUid(),
+        id: itemId,
+        type: master.type,
+        hitRate: master.hitRate || 0,
+        def: master.def || 0,
+        upgradedHit: itemId === 'favorite_stone' ? state.favoriteStoneUpgrades.upgradedHit : 0,
+        upgradedDef: 0,
+        upgrades: itemId === 'favorite_stone' ? state.favoriteStoneUpgrades.upgrades : 0
+      };
+
+      state.bag.push(newItem);
+      updateHeaderStats();
+
+      if (state.bag.length > 20) {
+        renderPendingItemModal(newItem.uid);
+      } else {
+        const isFood = master.type === 'food';
+        const isTreasure = master.type === 'treasure';
+
+        let titleColor = 'text-blue-400';
+        let btnClass = 'bg-blue-600 hover:bg-blue-500 text-white font-bold';
+
+        if (isFood) {
+          titleColor = 'text-lime-400';
+          btnClass = 'bg-lime-600 hover:bg-lime-500 text-white font-bold';
+        } else if (isTreasure) {
+          titleColor = 'text-yellow-300';
+          btnClass = 'bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-black';
+        }
+
+        showModal('🎁 アイテムを購入！', `
+          <div class="text-center space-y-2 my-1">
+            <div class="text-5xl my-2 animate-bounce">${master.icon}</div>
+            <div class="font-bold ${titleColor} text-sm">${master.name} を買った！</div>
+            <p class="text-xs text-slate-400">${master.effect || (master.hitRate ? `撃退率 <span class="num-font">+${master.hitRate}%</span>` : `防御力 <span class="num-font">+${master.def}</span>`)}</p>
+          </div>
+        `, [
+          {
+            text: 'らこっ',
+            class: btnClass,
+            cb: () => {
+              if (state.currentScreen === 'dolphinShop') renderDolphinShop(state.dolphinShopTab);
+              else if (state.currentScreen === 'market') renderMarketScreen(state.marketDialog, state.marketShopTab);
+            }
+          }
+        ]);
+      }
+    }
+
+    function obtainItemDirect(itemId, onComplete) {
+      const master = ITEMS[itemId];
+      const newItem = {
+        uid: generateUid(),
+        id: itemId,
+        type: master.type,
+        hitRate: master.hitRate || 0,
+        def: master.def || 0,
+        upgradedHit: itemId === 'favorite_stone' ? state.favoriteStoneUpgrades.upgradedHit : 0,
+        upgradedDef: 0,
+        upgrades: itemId === 'favorite_stone' ? state.favoriteStoneUpgrades.upgrades : 0
+      };
+
+      state.bag.push(newItem);
+      updateHeaderStats();
+
+      if (state.bag.length > 20) {
+        renderPendingItemModal(newItem.uid, onComplete);
+      } else {
+        if (onComplete) onComplete();
+      }
+    }
+
+    function renderPendingItemModal(tempUid, onComplete) {
+      const item = state.bag.find(i => i.uid === tempUid);
+      if (!item) {
+        if (onComplete) onComplete();
+        return;
+      }
+      const master = ITEMS[item.id];
+
+      showModal('🎒 かばんがいっぱいです！', `
+        <div class="text-center space-y-2">
+          <p class="text-xs font-bold text-slate-100">アイテムを入手したけど<br>持ちきれないみたい…</p>
+          <div class="p-1 inline-block">
+            <span class="text-3xl">${master.icon}</span>
+            <div class="font-bold text-xs text-white">${master.name}</div>
+            <div class="text-[10px] text-slate-400 mt-0.5">
+              ${master.effect ? master.effect : ''}
+              ${master.type === 'weapon' ? `撃退率 <span class="num-font">+${master.hitRate}%</span>` : ''}
+              ${master.type === 'armor' ? `防御力 <span class="num-font">+${master.def}</span>` : ''}
+            </div>
+          </div>
+        </div>
+      `, [
+        {
+          text: 'かばん整理',
+          class: 'bg-amber-400 text-slate-950 font-black',
+          cb: () => openBag(onComplete)
+        },
+        {
+          text: '諦める',
+          class: 'bg-rose-700 hover:bg-rose-600 text-white font-bold shadow',
+          cb: () => {
+            const idx = state.bag.findIndex(i => i.uid === tempUid);
+            if (idx !== -1) state.bag.splice(idx, 1);
+            updateHeaderStats();
+            if (onComplete) onComplete();
+          }
+        }
+      ]);
+    }
+
+    // --- BAG UI ---
+    let pendingCallbackOnClose = null;
+
+    function openBag(onCompleteCb = null) {
+      state.hiddenCommandStep = 0;
+      if (onCompleteCb) pendingCallbackOnClose = onCompleteCb;
+      state.isBagOpen = true;
+      updateHeaderStats();
+
+      const main = document.getElementById('main-content');
+      main.innerHTML = getBagHTML();
+      attachScrollGuide('bag-scroll');
+    }
+
+    function closeBag() {
+      if (state.bag.length > 20) {
+        showModal('🎒 かばんがいっぱい！', `<p class="text-center text-xs font-bold text-slate-200">アイテムを使ったり捨てたりして<br>空きを作ろう</p>`, [
+          { text: 'らこっ', class: 'bg-amber-400 text-slate-950 font-black', cb: () => openBag(pendingCallbackOnClose) }
+        ]);
+        return;
+      }
+
+      state.isBagOpen = false;
+      updateHeaderStats();
+
+      if (pendingCallbackOnClose) {
+        const cb = pendingCallbackOnClose;
+        pendingCallbackOnClose = null;
+        cb();
+      } else {
+        switch (state.currentScreen) {
+          case 'home': renderHomeScreen(); break;
+          case 'dolphinShop': renderDolphinShop(state.dolphinShopTab); break;
+          case 'exploration': renderCardSelectionScreen(); break;
+          case 'battle': if (state.battle) renderBattleScreen(); else renderHomeScreen(); break;
+          case 'market': renderMarketScreen(state.marketDialog, state.marketShopTab); break;
+          case 'smith': renderSmithScreen(); break;
+        }
+      }
+    }
+
+    function getBagHTML() {
+      const tabItems = state.bag.filter(item => ITEMS[item.id].type === state.activeBagTab);
+
+      return `
+        <div class="bg-slate-950 rounded-3xl p-3 sm:p-4 w-full h-full shadow-2xl flex flex-col justify-between border-2 border-amber-400/80 overflow-hidden relative">
+          <div class="flex-1 overflow-hidden flex flex-col relative">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-2 flex-shrink-0">
+              <div class="flex items-center gap-2">
+                <span class="text-2xl">🎒</span>
+                <h3 class="font-black text-slate-100 text-base">ラッコかばん <span class="num-font text-xs ${state.bag.length > 20 ? 'text-red-400 font-bold' : 'text-slate-400'}">(${state.bag.length}/20)</span></h3>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-4 gap-1 border-b border-slate-800 pb-2 mb-2 flex-shrink-0">
+              <button onclick="state.activeBagTab='food'; openBag();" class="py-1.5 text-center text-xs font-bold rounded-xl ${state.activeBagTab === 'food' ? 'bg-amber-400 text-slate-950 shadow-sm font-black' : 'text-slate-400 bg-slate-900'}">🦪 食べ物</button>
+              <button onclick="state.activeBagTab='treasure'; openBag();" class="py-1.5 text-center text-xs font-bold rounded-xl ${state.activeBagTab === 'treasure' ? 'bg-amber-400 text-slate-950 shadow-sm font-black' : 'text-slate-400 bg-slate-900'}">👑 お宝</button>
+              <button onclick="state.activeBagTab='weapon'; openBag();" class="py-1.5 text-center text-xs font-bold rounded-xl ${state.activeBagTab === 'weapon' ? 'bg-amber-400 text-slate-950 shadow-sm font-black' : 'text-slate-400 bg-slate-900'}">🗡️ 武器</button>
+              <button onclick="state.activeBagTab='armor'; openBag();" class="py-1.5 text-center text-xs font-bold rounded-xl ${state.activeBagTab === 'armor' ? 'bg-amber-400 text-slate-950 shadow-sm font-black' : 'text-slate-400 bg-slate-900'}">🛡️ 防具</button>
+            </div>
+
+            <div class="relative flex-1 overflow-hidden">
+              <div id="bag-scroll-arrow-up" class="hidden absolute top-1 left-1/2 -translate-x-1/2 z-10 text-emerald-400 font-black text-sm animate-arrow-up pointer-events-none">▲</div>
+              <div id="bag-scroll-arrow-down" class="hidden absolute bottom-1 left-1/2 -translate-x-1/2 z-10 text-emerald-400 font-black text-sm animate-arrow-down pointer-events-none">▼</div>
+
+              <div id="bag-scroll" class="space-y-2 overflow-y-auto scroll-container h-full pr-1">
+                ${tabItems.length === 0 ? '<p class="text-xs text-slate-500 text-center py-12">この分類のアイテムはありません</p>' : ''}
+                ${tabItems.map(item => {
+                  const master = ITEMS[item.id];
+                  const isEquipped = state.equippedWeaponUid === item.uid || state.equippedArmorUid === item.uid;
+                  const upgradeBadge = item.upgrades > 0 ? `<span class="text-orange-400 font-extrabold text-xs ml-1">🔥<span class="num-font">${item.upgrades}</span></span>` : '';
+
+                  const sellPrice = state.currentScreen === 'market' ? master.price : Math.floor(master.price * 0.7);
+
+                  return `
+                    <div class="bg-slate-900 p-2.5 rounded-2xl border border-slate-800 flex flex-col gap-1.5">
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                          <span class="text-2xl">${master.icon}</span>
+                          <div>
+                            <div class="font-bold text-xs text-slate-100 flex items-center gap-1">
+                              ${master.name}${upgradeBadge}
+                              ${isEquipped ? '<span class="bg-blue-600 text-white text-[9px] px-1.5 py-0.2 rounded-full font-bold">装備中</span>' : ''}
+                            </div>
+                            <div class="text-[10px] text-slate-400">
+                              ${master.effect ? master.effect : ''}
+                              ${master.type === 'weapon' ? `撃退率: <span class="num-font">+${master.hitRate + item.upgradedHit}%</span>` : ''}
+                              ${master.type === 'armor' ? `防御力: <span class="num-font">+${master.def + item.upgradedDef}</span>` : ''}
+                            </div>
+                          </div>
+                        </div>
+                        ${state.isMarket ? `
+                          <button onclick="promptSellItem('${item.uid}')" class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black px-2.5 py-1 rounded-xl text-xs shadow border border-cyan-300">
+                            売る (<span class="num-font">${sellPrice}</span>🐚)
+                          </button>
+                        ` : ''}
+                      </div>
+
+                      <div class="flex gap-1.5 justify-end pt-1 border-t border-slate-800">
+                        ${getItemActionButtons(item, isEquipped)}
+                        <button onclick="promptDiscardItem('${item.uid}')" class="bg-rose-950/80 hover:bg-rose-900 text-rose-300 font-bold px-2 py-1 rounded-xl text-[10px] border border-rose-800">
+                          捨てる
+                        </button>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function getItemActionButtons(item, isEquipped) {
+      const master = ITEMS[item.id];
+
+      if (master.type === 'food') {
+        return `<button onclick="handleUseFood('${item.uid}')" class="bg-lime-600 hover:bg-lime-500 text-white font-bold px-3 py-1 rounded-xl text-xs">使う</button>`;
+      }
+
+      if (master.type === 'weapon' || master.type === 'armor') {
+        if (isEquipped) {
+          return `<button onclick="unequipItem('${item.uid}')" class="bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold px-3 py-1 rounded-xl text-xs">外す</button>`;
+        } else {
+          return `<button onclick="equipItem('${item.uid}')" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-1 rounded-xl text-xs">装備</button>`;
+        }
+      }
+
+      if (master.type === 'treasure') {
+        if (master.timing === '【使用不可】' || master.timing === '【自動】') return '';
+        return `<button onclick="useTreasureItem('${item.uid}')" class="bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-black px-3 py-1 rounded-xl text-xs">使う</button>`;
+      }
+
+      return '';
+    }
+
+    function handleUseFood(uid) {
+      if (state.battle && state.battle.disableFood) {
+        showModal('🫟 墨のせいで使えないよ', '<p class="text-center font-bold text-xs text-slate-200">ダイオウイカの墨でベタベタして、今は食べ物を使えない！</p>', [
+          { text: 'らこっ', class: 'bg-slate-700 text-white font-bold', cb: () => openBag(pendingCallbackOnClose) }
+        ]);
+        return;
+      }
+
+      const idx = state.bag.findIndex(i => i.uid === uid);
+      if (idx === -1) return;
+
+      const item = state.bag[idx];
+      const master = ITEMS[item.id];
+
+      if (state.satiety >= state.maxSatiety) {
+        showModal('🦦 お腹いっぱい！', `
+          <div class="text-center space-y-2">
+            <p class="text-xs text-slate-200">満腹度はすでに最大の <span class="num-font font-bold text-amber-300">100</span> です。</p>
+            <p class="text-xs text-slate-400">今食べても効果ありませんよ</p>
+          </div>
+        `, [
+          {
+            text: 'それでも食べる',
+            class: 'bg-lime-600 hover:bg-lime-500 text-white font-bold',
+            cb: () => executeEatFood(uid)
+          },
+          {
+            text: 'やめておく',
+            class: 'bg-slate-700 text-slate-200 font-bold',
+            cb: () => openBag(pendingCallbackOnClose)
+          }
+        ]);
+        return;
+      }
+
+      executeEatFood(uid);
+    }
+
+    function executeEatFood(uid) {
+      const idx = state.bag.findIndex(i => i.uid === uid);
+      if (idx === -1) return;
+
+      const item = state.bag[idx];
+      const master = ITEMS[item.id];
+
+      const prev = state.satiety;
+      state.satiety = Math.min(state.maxSatiety, state.satiety + master.val);
+      const next = state.satiety;
+      state.bag.splice(idx, 1);
+
+      updateHeaderStats();
+
+      showModal('🙏 いただきます！', `
+        <div class="text-center space-y-2">
+          <div class="text-4xl my-1">${master.icon}</div>
+          <p class="text-xs font-bold text-lime-400">${master.name} を食べた！</p>
+          <div class="bg-slate-900 p-2 rounded-xl text-xs font-bold border border-slate-800">
+            満腹度: <span class="num-font text-emerald-400 font-bold">${prev}</span> ➔ <span class="num-font text-emerald-400 font-bold">${next}</span>
+          </div>
+        </div>
+      `, [
+        {
+          text: 'ごちそうさま',
+          class: 'bg-lime-600 hover:bg-lime-500 text-white font-bold',
+          cb: () => openBag(pendingCallbackOnClose)
+        }
+      ]);
+    }
+
+    function equipItem(uid) {
+      const item = state.bag.find(i => i.uid === uid);
+      if (!item) return;
+
+      if (item.type === 'weapon') state.equippedWeaponUid = uid;
+      if (item.type === 'armor') state.equippedArmorUid = uid;
+
+      updateHeaderStats();
+      openBag(pendingCallbackOnClose);
+    }
+
+    function unequipItem(uid) {
+      if (state.equippedWeaponUid === uid) state.equippedWeaponUid = null;
+      if (state.equippedArmorUid === uid) state.equippedArmorUid = null;
+
+      updateHeaderStats();
+      openBag(pendingCallbackOnClose);
+    }
+
+    function useTreasureItem(uid) {
+      const item = state.bag.find(i => i.uid === uid);
+      if (!item) return;
+      const master = ITEMS[item.id];
+
+      if (state.battle && state.battle.disableTreasure) {
+        showModal('⚡️ しびれて使えないよ', '<p class="text-center font-bold text-xs text-slate-200">チクチククラゲの毒で手がしびれて、今はお宝を使えない！</p>', [
+          { text: 'らこっ', class: 'bg-slate-700 text-white font-bold', cb: () => openBag(pendingCallbackOnClose) }
+        ]);
+        return;
+      }
+
+      const showTimingErrorModal = () => {
+        showModal('⚠️使えないみたい', `
+          <div class="text-center space-y-1">
+            <p class="text-xs text-slate-200">このアイテムは今使えないよ</p>
+            <p class="text-xs font-bold text-amber-300">タイミング:${master.timing}</p>
+          </div>
+        `, [
+          { text: 'らこっ', class: 'bg-slate-700 text-white font-bold', cb: () => openBag(pendingCallbackOnClose) }
+        ]);
+      };
+
+      if (state.bag.length > 20 && master.timing !== '【いつでも】') {
+        showTimingErrorModal();
+        return;
+      }
+
+      if (state.currentScreen === 'exploration') {
+        const isCardChangeItem = ['flashlight', 'water_lure', 'beach_flag', 'silver_coin', 'octopus_pot', 'secret_map'].includes(item.id);
+
+        if (isCardChangeItem) {
+          if (state.depth >= LAST_DEPTH) {
+            showModal('⚠️使えないみたい', `<p class="text-center text-xs text-slate-200 font-bold">最後の階層では使えないよ</p>`, [
+              { text: 'らこっ', class: 'bg-slate-700 text-white font-bold', cb: () => openBag(pendingCallbackOnClose) }
+            ]);
+            return;
+          }
+
+          state.pendingTargetItem = item;
+          closeBag();
+          return;
+        }
+      }
+
+      if (state.currentScreen === 'battle' && state.battle) {
+        if (state.battle.turn.includes('confirm')) {
+          showModal('⚠️使えないみたい', `<p class="text-center text-xs text-slate-200 font-bold">結果を確認するまではアイテムを使えないよ</p>`, [
+            { text: 'らこっ', class: 'bg-slate-700 text-white font-bold', cb: () => openBag(pendingCallbackOnClose) }
+          ]);
+          return;
+        }
+
+        if (['buoy', 'log', 'meat'].includes(item.id)) {
+          executeTreasureEffectBattle(item);
+          return;
+        }
+      }
+
+      showTimingErrorModal();
+    }
+
+    function executeCardChange(item, cardIdx) {
+      const idx = state.bag.findIndex(i => i.uid === item.uid);
+      if (idx !== -1) state.bag.splice(idx, 1);
+
+      const targetHoleMap = {
+        water_lure: 'treasure_sign',
+        beach_flag: 'oasis',
+        silver_coin: 'market',
+        octopus_pot: 'smith',
+        secret_map: 'shortcut'
+      };
+
+      const newHole = targetHoleMap[item.id];
+      if (newHole) {
+        state.currentCards[cardIdx].hole = newHole;
+        state.currentCards[cardIdx].prob = HOLE_TYPES[newHole].baseProb || generateTreasureSignProb();
+      }
+
+      showModal('✨ カードが変わった！', `
+        <div class="text-center space-y-2">
+          <div class="text-4xl my-1">🕳️✨</div>
+          <p class="text-xs font-bold text-slate-100">${ITEMS[item.id].name} の効果でカードが変化したよ！</p>
+        </div>
+      `, [
+        {
+          text: 'らこっ',
+          class: 'bg-amber-400 hover:bg-amber-300 text-slate-950 font-black',
+          cb: () => renderCardSelectionScreen()
+        }
+      ]);
+    }
+
+    function executeFlashlight(item, cardIdx) {
+      const idx = state.bag.findIndex(i => i.uid === item.uid);
+      if (idx !== -1) state.bag.splice(idx, 1);
+
+      const targetCard = state.currentCards[cardIdx];
+      const determinedEvent = rollEvent(targetCard.prob);
+
+      targetCard.prob = { [determinedEvent]: 100 };
+      const eventMeta = EVENT_META[determinedEvent];
+
+      showModal('🔦 照らしだした！', `
+        <div class="text-center space-y-2">
+          <div class="text-4xl my-1">🔦✨</div>
+          <p class="text-xs font-bold text-slate-100">カードを照らすと…</p>
+          <p class="text-sm font-black ${eventMeta.color}">「${eventMeta.name}」が発生することが判明した！</p>
+        </div>
+      `, [
+        {
+          text: 'らこっ',
+          class: 'bg-amber-400 hover:bg-amber-300 text-slate-950 font-black',
+          cb: () => renderCardSelectionScreen()
+        }
+      ]);
+    }
+
+    function executeTreasureEffectBattle(item) {
+      const b = state.battle;
+      const idx = state.bag.findIndex(i => i.uid === item.uid);
+
+      if (item.id === 'buoy') {
+        state.bag.splice(idx, 1);
+        state.battle = null;
+        state.isBagOpen = false;
+        showModal('🛟 緊急脱出！', '<p class="text-center font-bold text-slate-200">お助けうきわで戦闘を回避した！</p>', [
+          { text: '引き返す', class: 'bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-black', cb: () => renderCardSelectionScreen() }
+        ]);
+        return;
+      }
+
+      if (item.id === 'log') {
+        if (b.turn !== 'enemy') {
+          showModal('⚠️使えないみたい', `
+            <div class="text-center space-y-1">
+              <p class="text-xs text-slate-200">このアイテムは今使えないよ</p>
+              <p class="text-xs font-bold text-amber-300">タイミング:【敵の番】</p>
+            </div>
+          `, [{ text: 'らこっ', class: 'bg-slate-700 text-white font-bold', cb: () => openBag(pendingCallbackOnClose) }]);
+          return;
+        }
+        state.bag.splice(idx, 1);
+        b.turn = 'player';
+        b.log.push('🪵 身代わり丸太を使った！ 敵の番をスキップ！');
+        b.log.push('ラッコの番');
+        checkCourage();
+        state.isBagOpen = false;
+        renderBattleScreen();
+        return;
+      }
+
+      if (item.id === 'meat') {
+        if (b.turn !== 'player') {
+          showModal('⚠️使えないみたい', `
+            <div class="text-center space-y-1">
+              <p class="text-xs text-slate-200">このアイテムは今使えないよ</p>
+              <p class="text-xs font-bold text-amber-300">タイミング:【ラッコの番】</p>
+            </div>
+          `, [{ text: 'らこっ', class: 'bg-slate-700 text-white font-bold', cb: () => openBag(pendingCallbackOnClose) }]);
+          return;
+        }
+        state.bag.splice(idx, 1);
+        b.buffHitMultiplier *= 2;
+        b.log.push('💊 ビタミン剤を飲んだ！ 撃退率が一度だけ <span class="num-font">2</span> 倍になる！');
+        state.isBagOpen = false;
+        renderBattleScreen();
+        return;
+      }
+    }
+
+    function promptDiscardItem(uid) {
+      const item = state.bag.find(i => i.uid === uid);
+      if (!item) return;
+
+      showModal('🗑️ 確認', `<p class="text-center font-bold text-slate-100">本当に ${ITEMS[item.id].name} を捨てていい？</p>`, [
+        {
+          text: '捨てる',
+          class: 'bg-rose-950/80 hover:bg-rose-900 text-rose-300 font-bold border border-rose-800',
+          cb: () => {
+            const idx = state.bag.findIndex(i => i.uid === uid);
+            state.bag.splice(idx, 1);
+            if (state.equippedWeaponUid === uid) state.equippedWeaponUid = null;
+            if (state.equippedArmorUid === uid) state.equippedArmorUid = null;
+
+            syncFavoriteStoneDolphinStock();
+            updateHeaderStats();
+            openBag(pendingCallbackOnClose);
+          }
+        },
+        { text: 'やめる', class: 'bg-slate-700 text-slate-200', cb: () => openBag(pendingCallbackOnClose) }
+      ]);
+    }
+
+    async function promptSellItem(uid) {
+      const item = state.bag.find(i => i.uid === uid);
+      if (!item) return;
+      const master = ITEMS[item.id];
+      const sellPrice = state.currentScreen === 'market' ? master.price : Math.floor(master.price * 0.7);
+
+      showModal('⚖️ 売却確認', `
+        <div class="text-center space-y-2">
+          <p class="font-bold text-slate-100">本当に ${master.name} を売っていい？</p>
+          <p class="text-xs text-amber-400 font-bold">買取価格: <span class="num-font">${sellPrice}</span> 🐚</p>
+        </div>
+      `, [
+        {
+          text: '売る',
+          class: 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black border border-cyan-300',
+          cb: () => {
+            const idx = state.bag.findIndex(i => i.uid === uid);
+            state.bag.splice(idx, 1);
+            if (state.equippedWeaponUid === uid) state.equippedWeaponUid = null;
+            if (state.equippedArmorUid === uid) state.equippedArmorUid = null;
+            state.shells += sellPrice;
+
+            syncFavoriteStoneDolphinStock();
+            updateHeaderStats();
+            openBag(pendingCallbackOnClose);
+          }
+        },
+        { text: 'やめる', class: 'bg-slate-700 text-slate-200', cb: () => openBag(pendingCallbackOnClose) }
+      ]);
+    }
+
+    function showModal(title, htmlContent, buttons = []) {
+      const modal = document.getElementById('modal-container');
+      document.body.classList.add('modal-active-overlay');
+      modal.className = "fixed inset-0 pointer-events-auto z-40 flex items-end sm:items-center justify-center p-3 pb-28 sm:pb-36 pt-16";
+      modal.classList.remove('hidden');
+
+      modal.innerHTML = `
+        <div class="bg-slate-950 rounded-3xl p-5 w-full max-w-xs shadow-2xl flex flex-col justify-between border-4 border-slate-800 animate-fade-in min-h-[220px]">
+          <div>
+            <h3 class="font-black text-center text-base text-slate-100 border-b border-slate-800 pb-2 mb-3">${title}</h3>
+            <div class="text-xs text-slate-300 space-y-2 mb-4">${htmlContent}</div>
+          </div>
+          <div class="flex gap-2 justify-center pt-2 border-t border-slate-800/80">
+            ${buttons.map((b, idx) => `
+              <button id="modal-btn-${idx}" class="flex-1 font-bold py-3 px-3 rounded-2xl text-xs shadow active:scale-95 transition ${b.class}">
+                ${b.text}
+              </button>
+            `).join('')}
+          </div>
+        </div>
+      `;
+
+      buttons.forEach((b, idx) => {
+        const btnEl = document.getElementById(`modal-btn-${idx}`);
+        if (btnEl) {
+          btnEl.onclick = () => {
+            document.body.classList.remove('modal-active-overlay');
+            modal.classList.add('hidden');
+            if (b.cb) b.cb();
+          };
+        }
+      });
+    }
+
+    window.onload = function() {
+      initGame();
+    };
+  </script>
+</body>
+</html>
