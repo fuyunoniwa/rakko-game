@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ラッコの探検記</title>
+  <title>ラッコの海底洞窟探検</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
@@ -673,13 +673,13 @@
           </div>
 
           <div class="space-y-1 my-auto mt-2">
-            <div class="text-5xl animate-bounce mb-1">🏡🦦</div>
+            <div class="text-5xl mb-1">🏡</div>
             <div class="text-xs font-bold text-slate-400">拠点</div>
             <h1 class="text-2xl font-black text-amber-700 tracking-wider">ラッコのおうち</h1>
             <p class="text-xs text-slate-300 font-bold mt-1">準備を整えて探検に出かけよう</p>
           </div>
 
-          <div class="w-full max-w-xs mx-auto mb-8 space-y-2.5">
+          <div class="w-full max-w-xs mx-auto mb-8 space-y-2.5 -translate-y-12">
             <div>
               <button onclick="goToDolphinShop()" class="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black py-3 px-4 rounded-2xl shadow-lg border-2 border-cyan-300 text-base active:scale-95 transition">
                 🐬 イルカのお店へ
@@ -723,7 +723,7 @@
         },
         {
           text: '今はしない',
-          class: 'bg-slate-700 text-slate-200 font-bold',
+          class: 'bg-[#dca568] hover:bg-[#d0995c] text-black font-black',
           cb: () => {}
         }
       ]);
@@ -2026,7 +2026,7 @@
     function closeBag() {
       if (state.bag.length > 20) {
         showModal('🎒 かばんがいっぱい！', `<p class="text-center text-xs font-bold text-slate-200">アイテムを使ったり捨てたりして<br>空きを作ろう</p>`, [
-          { text: 'らこっ', class: 'bg-amber-400 text-slate-950 font-black', cb: () => openBag(pendingCallbackOnClose) }
+          { text: 'らこっ', class: 'bg-[#dca568] hover:bg-[#d0995c] text-black font-black', cb: () => openBag(pendingCallbackOnClose) }
         ]);
         return;
       }
